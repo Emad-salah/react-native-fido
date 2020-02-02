@@ -58,9 +58,16 @@ public class RNFido2Module extends ReactContextBaseJavaModule {
                         mSignPromise.reject(E_SIGN_CANCELLED, "Sign was cancelled");
                     } else if (resultCode == Activity.RESULT_OK) {
                         Log.i(TAG, "Received response from Security Key");
-                        ResponseData response =
-                                intent.getParcelableExtra(Fido.FIDO2_KEY_RESPONSE_EXTRA);
-                        mSignPromise.resolve(response.toJsonObject().toString());
+                        AuthenticatorAssertionResponse signedData =
+                                AuthenticatorAssertionResponse.deserializeFromBytes(
+                                        intent.getByteArrayExtra(Fido.FIDO2_KEY_RESPONSE_EXTRA));
+                        WritableMap response = Arguments.createMap();
+                        response.putString("clientData", signedData.getClientDataJSON().toString());
+                        response.putString("authenticatorData", signedData.getAuthenticatorData().toString());
+                        response.putString("keyHandle", signedData.getKeyHandle().toString());
+                        response.putString("signature", signedData.getSignature().toString());
+                        response.putString("userHandle", signedData.getUserHandle().toString());
+                        mSignPromise.resolve(response);
                     }
                 }
                 mSignPromise = null;
