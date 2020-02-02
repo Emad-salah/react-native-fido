@@ -62,11 +62,10 @@ public class RNFido2Module extends ReactContextBaseJavaModule {
                                 AuthenticatorAssertionResponse.deserializeFromBytes(
                                         intent.getByteArrayExtra(Fido.FIDO2_KEY_RESPONSE_EXTRA));
                         WritableMap response = Arguments.createMap();
-                        response.putString("clientData", signedData.getClientDataJSON().toString());
-                        response.putString("authenticatorData", signedData.getAuthenticatorData().toString());
-                        response.putString("keyHandle", signedData.getKeyHandle().toString());
-                        response.putString("signature", signedData.getSignature().toString());
-                        response.putString("userHandle", signedData.getUserHandle().toString());
+                        response.putString("clientData", Base64.encodeToString(signedData.getClientDataJSON(), Base64.DEFAULT));
+                        response.putString("authenticatorData", Base64.encodeToString(signedData.getAuthenticatorData(), Base64.DEFAULT));
+                        response.putString("keyHandle", Base64.encodeToString(signedData.getKeyHandle(), Base64.DEFAULT));
+                        response.putString("signature", Base64.encodeToString(signedData.getSignature(), Base64.DEFAULT));
                         mSignPromise.resolve(response);
                     }
                 }
