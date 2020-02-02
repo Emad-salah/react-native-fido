@@ -65,7 +65,7 @@ public class RNFido2Module extends ReactContextBaseJavaModule {
                         response.putString("clientData", Base64.encodeToString(signedData.getClientDataJSON(), Base64.DEFAULT));
                         response.putString("authenticatorData", Base64.encodeToString(signedData.getAuthenticatorData(), Base64.DEFAULT));
                         response.putString("keyHandle", Base64.encodeToString(signedData.getKeyHandle(), Base64.DEFAULT));
-                        response.putString("signature", Base64.encodeToString(signedData.getSignature(), Base64.DEFAULT));
+                        response.putString("signatureData", Base64.encodeToString(signedData.getSignature(), Base64.DEFAULT));
                         mSignPromise.resolve(response);
                     }
                 }
