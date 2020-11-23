@@ -86,11 +86,14 @@ public class RNFido2Module extends ReactContextBaseJavaModule {
                                 AuthenticatorAssertionResponse.deserializeFromBytes(
                                         intent.getByteArrayExtra(Fido.FIDO2_KEY_RESPONSE_EXTRA));
                         WritableMap response = Arguments.createMap();
+                        byte[] userHandle = signedData.getUserHandle();
                         response.putString("clientData", Base64.encodeToString(signedData.getClientDataJSON(), Base64.DEFAULT));
                         response.putString("authenticatorData", Base64.encodeToString(signedData.getAuthenticatorData(), Base64.DEFAULT));
                         response.putString("keyHandle", Base64.encodeToString(signedData.getKeyHandle(), Base64.DEFAULT));
                         response.putString("signature", Base64.encodeToString(signedData.getSignature(), Base64.DEFAULT));
-                        response.putString("userHandle", Base64.encodeToString(signedData.getUserHandle(), Base64.DEFAULT));
+                        if (userHandle != null) {
+                            response.putString("userHandle", Base64.encodeToString(userHandle, Base64.DEFAULT));
+                        }
                         mSignPromise.resolve(response);
                     }
                 }
@@ -195,10 +198,10 @@ public class RNFido2Module extends ReactContextBaseJavaModule {
         for (int i = 0; i < params.size(); i++) {
             ReadableMap param = params.getMap(i);
             String type = param.getString("type");
-            Double alg = param.getDouble("alg");
+            int alg = param.getInt("alg");
             // TODO: this is a hack, use KEY_PARAMETERS_ALGORITHM = "alg"
             PublicKeyCredentialParameters parameter =
-                    new PublicKeyCredentialParameters(type, alg);
+                    new PublicKeyCredentialParameters(type == null ? "public-key" : type, alg);
             parameters.add(parameter);
         }
 
@@ -290,7 +293,7 @@ public class RNFido2Module extends ReactContextBaseJavaModule {
             )
             .setAllowList(allowedKeys)
             .setChallenge(Base64.decode(challenge, Base64.DEFAULT))
-                .setTimeoutSeconds(60d)
+            .setTimeoutSeconds(60d)
             .build();
 
         Fido2ApiClient fido2ApiClient = Fido.getFido2ApiClient(this.reactContext);
