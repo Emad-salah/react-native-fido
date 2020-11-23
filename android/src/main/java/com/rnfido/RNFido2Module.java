@@ -22,6 +22,7 @@ import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.bridge.Promise;
 
+import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.WritableMap;
 import com.google.android.gms.fido.fido2.Fido2ApiClient;
 import com.google.android.gms.fido.fido2.Fido2PendingIntent;
@@ -29,6 +30,8 @@ import com.google.android.gms.fido.fido2.api.common.Attachment;
 import com.google.android.gms.fido.fido2.api.common.AttestationConveyancePreference;
 import com.google.android.gms.fido.fido2.api.common.AuthenticationExtensions;
 import com.google.android.gms.fido.fido2.api.common.AuthenticatorAssertionResponse;
+import com.google.android.gms.fido.fido2.api.common.AuthenticatorAttestationResponse;
+import com.google.android.gms.fido.fido2.api.common.AuthenticatorErrorResponse;
 import com.google.android.gms.fido.fido2.api.common.AuthenticatorSelectionCriteria;
 import com.google.android.gms.fido.fido2.api.common.EC2Algorithm;
 import com.google.android.gms.fido.fido2.api.common.FidoAppIdExtension;
@@ -42,6 +45,7 @@ import com.google.android.gms.fido.fido2.api.common.PublicKeyCredentialCreationO
 import com.google.android.gms.fido.fido2.api.common.PublicKeyCredentialUserEntity;
 import com.google.android.gms.fido.fido2.api.common.PublicKeyCredentialRpEntity;
 import com.google.android.gms.fido.Fido;
+import com.google.android.gms.fido.fido2.api.common.TokenBinding;
 import com.google.android.gms.fido.fido2.api.common.UserVerificationMethodExtension;
 import com.google.android.gms.fido.u2f.api.common.ResponseData;
 import com.google.android.gms.tasks.OnFailureListener;
@@ -70,6 +74,8 @@ public class RNFido2Module extends ReactContextBaseJavaModule {
     private final ActivityEventListener mActivityEventListener = new BaseActivityEventListener() {
         @Override
         public void onActivityResult(Activity activity, int requestCode, int resultCode, Intent intent) {
+            super.onActivityResult(activity, requestCode, resultCode, intent);
+
             if (requestCode == REQUEST_CODE_SIGN) {
                 if (mSignPromise != null) {
                     if (resultCode == Activity.RESULT_CANCELED) {
@@ -80,11 +86,11 @@ public class RNFido2Module extends ReactContextBaseJavaModule {
                                 AuthenticatorAssertionResponse.deserializeFromBytes(
                                         intent.getByteArrayExtra(Fido.FIDO2_KEY_RESPONSE_EXTRA));
                         WritableMap response = Arguments.createMap();
-                        response.putString("clientData", signedData.getClientDataJSON().toString());
-                        response.putString("authenticatorData", signedData.getAuthenticatorData().toString());
-                        response.putString("keyHandle", signedData.getKeyHandle().toString());
-                        response.putString("signature", signedData.getSignature().toString());
-                        response.putString("userHandle", signedData.getUserHandle().toString());
+                        response.putString("clientData", Base64.encodeToString(signedData.getClientDataJSON(), Base64.DEFAULT));
+                        response.putString("authenticatorData", Base64.encodeToString(signedData.getAuthenticatorData(), Base64.DEFAULT));
+                        response.putString("keyHandle", Base64.encodeToString(signedData.getKeyHandle(), Base64.DEFAULT));
+                        response.putString("signature", Base64.encodeToString(signedData.getSignature(), Base64.DEFAULT));
+                        response.putString("userHandle", Base64.encodeToString(signedData.getUserHandle(), Base64.DEFAULT));
                         mSignPromise.resolve(response);
                     }
                 }
@@ -92,24 +98,35 @@ public class RNFido2Module extends ReactContextBaseJavaModule {
             }
 
             if (requestCode == REQUEST_CODE_REGISTER) {
+                Log.i(TAG, "Received pending response from Fido2 Activity");
                 if (mRegisterPromise != null) {
+                    Log.i(TAG, "Received confirmed response from Fido2 Activity");
                     if (resultCode == Activity.RESULT_CANCELED) {
                         mRegisterPromise.reject(E_REGISTER_CANCELLED, "Register was cancelled");
                     } else if (resultCode == Activity.RESULT_OK) {
-                        Log.i(TAG, "Received response from Security Key");
-                        AuthenticatorAssertionResponse signedData =
-                                AuthenticatorAssertionResponse.deserializeFromBytes(
+                        if (intent.hasExtra(Fido.FIDO2_KEY_ERROR_EXTRA)) {
+                            AuthenticatorErrorResponse response =
+                                AuthenticatorErrorResponse.deserializeFromBytes(
+                                    intent.getByteArrayExtra(Fido.FIDO2_KEY_ERROR_EXTRA));
+                            Log.e(TAG, "FIDO2_KEY_ERROR_EXTRA Security Key");
+                        }
+
+                        if (intent.hasExtra(Fido.FIDO2_KEY_RESPONSE_EXTRA)) {
+                            Log.i(TAG, "Received response from Security Key: " + Base64.encode(intent.getByteArrayExtra(Fido.FIDO2_KEY_RESPONSE_EXTRA), Base64.DEFAULT));
+                            AuthenticatorAttestationResponse signedData =
+                                    AuthenticatorAttestationResponse.deserializeFromBytes(
                                         intent.getByteArrayExtra(Fido.FIDO2_KEY_RESPONSE_EXTRA));
-                        WritableMap response = Arguments.createMap();
-                        response.putString("clientData", signedData.getClientDataJSON().toString());
-                        response.putString("authenticatorData", signedData.getAuthenticatorData().toString());
-                        response.putString("keyHandle", signedData.getKeyHandle().toString());
-                        response.putString("signature", signedData.getSignature().toString());
-                        response.putString("userHandle", signedData.getUserHandle().toString());
-                        mRegisterPromise.resolve(response);
+                            WritableMap response = Arguments.createMap();
+                            response.putString("clientData", Base64.encodeToString(signedData.getClientDataJSON(), Base64.DEFAULT));
+                            response.putString("authenticatorData", Base64.encodeToString(signedData.getAttestationObject(), Base64.DEFAULT));
+                            response.putString("keyHandle", Base64.encodeToString(signedData.getKeyHandle(), Base64.DEFAULT));
+                            mRegisterPromise.resolve(response);
+                        }
                     }
+                } else {
+                    Log.i(TAG, "Register promise is null");
                 }
-                mSignPromise = null;
+                mRegisterPromise = null;
             }
         }
     };
@@ -176,10 +193,12 @@ public class RNFido2Module extends ReactContextBaseJavaModule {
 
         ArrayList<PublicKeyCredentialParameters> parameters = new ArrayList<>();
         for (int i = 0; i < params.size(); i++) {
-            String param = params.getString(i);
+            ReadableMap param = params.getMap(i);
+            String type = param.getString("type");
+            Double alg = param.getDouble("alg");
             // TODO: this is a hack, use KEY_PARAMETERS_ALGORITHM = "alg"
             PublicKeyCredentialParameters parameter =
-                    new PublicKeyCredentialParameters("public-key", EC2Algorithm.ES256.getAlgoValue());
+                    new PublicKeyCredentialParameters(type, alg);
             parameters.add(parameter);
         }
 
@@ -187,10 +206,11 @@ public class RNFido2Module extends ReactContextBaseJavaModule {
             .setRp(rpEntity)
             .setUser(currentUser)
             .setAttestationConveyancePreference(
-                    AttestationConveyancePreference.DIRECT
+                    AttestationConveyancePreference.NONE
             )
             .setChallenge(Base64.decode(challenge, Base64.DEFAULT))
             .setParameters(parameters)
+            .setTimeoutSeconds(60d)
             .build();
 
         Fido2ApiClient fido2ApiClient = Fido.getFido2ApiClient(this.reactContext);
@@ -204,14 +224,15 @@ public class RNFido2Module extends ReactContextBaseJavaModule {
                         // Start a FIDO2 sign request.
                         try {
                             activity.startIntentSenderForResult(
-                                    fido2PendingIntent.getIntentSender(),
-                                REQUEST_CODE_SIGN,
-                                null, // fillInIntent,
-                                0, // flagsMask,
-                                0, // flagsValue,
-                                0 //extraFlags
+                                    fido2PendingIntent.getIntentSender(), 
+                                    REQUEST_CODE_REGISTER, 
+                                    null, // fillInIntent,
+                                    0, // flagsMask,
+                                    0, // flagsValue,
+                                    0  //extraFlags
                             );
                         } catch (IntentSender.SendIntentException e) {
+                            Log.e(TAG, "SendIntentException: " + e);
                             e.printStackTrace();
                         }
                     }
@@ -225,6 +246,7 @@ public class RNFido2Module extends ReactContextBaseJavaModule {
                 public void onFailure(Exception e) {
                     // Fail
                     mRegisterPromise.reject("unknown", e.getLocalizedMessage());
+                    mRegisterPromise = null;
                 }
             }
         );
@@ -268,6 +290,7 @@ public class RNFido2Module extends ReactContextBaseJavaModule {
             )
             .setAllowList(allowedKeys)
             .setChallenge(Base64.decode(challenge, Base64.DEFAULT))
+                .setTimeoutSeconds(60d)
             .build();
 
         Fido2ApiClient fido2ApiClient = Fido.getFido2ApiClient(this.reactContext);
