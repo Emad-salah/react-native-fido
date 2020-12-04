@@ -87,12 +87,13 @@ public class RNFido2Module extends ReactContextBaseJavaModule {
                                         intent.getByteArrayExtra(Fido.FIDO2_KEY_RESPONSE_EXTRA));
                         WritableMap response = Arguments.createMap();
                         byte[] userHandle = signedData.getUserHandle();
-                        response.putString("clientData", Base64.encodeToString(signedData.getClientDataJSON(), Base64.DEFAULT));
-                        response.putString("authenticatorData", Base64.encodeToString(signedData.getAuthenticatorData(), Base64.DEFAULT));
-                        response.putString("keyHandle", Base64.encodeToString(signedData.getKeyHandle(), Base64.DEFAULT));
-                        response.putString("signature", Base64.encodeToString(signedData.getSignature(), Base64.DEFAULT));
+                        response.putString("clientDataJSON", Base64.encodeToString(signedData.getClientDataJSON(), Base64.URL_SAFE));
+                        response.putString("attestationObject", Base64.encodeToString(signedData.getAuthenticatorData(), Base64.URL_SAFE));
+                        response.putString("id", Base64.encodeToString(signedData.getKeyHandle(), Base64.URL_SAFE));
+                        response.putString("rawId", Base64.encodeToString(signedData.getKeyHandle(), Base64.URL_SAFE));
+                        response.putString("signature", Base64.encodeToString(signedData.getSignature(), Base64.URL_SAFE));
                         if (userHandle != null) {
-                            response.putString("userHandle", Base64.encodeToString(userHandle, Base64.DEFAULT));
+                            response.putString("userHandle", Base64.encodeToString(userHandle, Base64.URL_SAFE));
                         }
                         mSignPromise.resolve(response);
                     }
@@ -120,9 +121,10 @@ public class RNFido2Module extends ReactContextBaseJavaModule {
                                     AuthenticatorAttestationResponse.deserializeFromBytes(
                                         intent.getByteArrayExtra(Fido.FIDO2_KEY_RESPONSE_EXTRA));
                             WritableMap response = Arguments.createMap();
-                            response.putString("clientData", Base64.encodeToString(signedData.getClientDataJSON(), Base64.DEFAULT));
-                            response.putString("authenticatorData", Base64.encodeToString(signedData.getAttestationObject(), Base64.DEFAULT));
-                            response.putString("keyHandle", Base64.encodeToString(signedData.getKeyHandle(), Base64.DEFAULT));
+                            response.putString("clientDataJSON", Base64.encodeToString(signedData.getClientDataJSON(), Base64.URL_SAFE));
+                            response.putString("attestationObject", Base64.encodeToString(signedData.getAttestationObject(), Base64.URL_SAFE));
+                            response.putString("id", Base64.encodeToString(signedData.getKeyHandle(), Base64.URL_SAFE));
+                            response.putString("rawId", Base64.encodeToString(signedData.getKeyHandle(), Base64.URL_SAFE));
                             mRegisterPromise.resolve(response);
                         }
                     }
