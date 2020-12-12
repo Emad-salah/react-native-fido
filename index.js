@@ -19,7 +19,7 @@ const Fido2 = {
     keyHandles = [],
     challenge,
     appId,
-    publicKeyAlgorithms,
+    publicKeyAlgorithms = [-7],
     options = {
       timeout: 60,
       requireResidentKey: true,
