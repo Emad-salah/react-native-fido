@@ -9,7 +9,8 @@ const Fido2 = {
     }
 
     if (Platform.OS === "ios") {
-      return RNFido2.init(origin);
+      await RNFido2.init(origin);
+      return "Initialized";
     }
 
     return "Initialized";
