@@ -9,17 +9,18 @@ Pod::Spec.new do |s|
   s.description  = <<-DESC
                   react-native-fido2
                    DESC
-  s.homepage     = "https://github.com/github_account/react-native-fido2"
+  s.homepage     = "https://github.com/Emad-Salah/react-native-fido2"
   s.license      = "MIT"
   # s.license    = { :type => "MIT", :file => "FILE_LICENSE" }
-  s.authors      = { "Your Name" => "yourname@email.com" }
+  s.authors      = { "Emad Kheir" => "emads14@gmail.com" }
   s.platforms    = { :ios => "9.0" }
-  s.source       = { :git => "https://github.com/github_account/react-native-fido2.git", :tag => "#{s.version}" }
+  s.source       = { :git => "https://github.com/Emad-Salah/react-native-fido2.git", :tag => "#{s.version}" }
 
   s.source_files = "ios/**/*.{h,m,swift}"
   s.requires_arc = true
 
   s.dependency "React"
+  s.dependency "WebAuthnKit", '~> 0.9.3'
   # ...
   # s.dependency "..."
 end

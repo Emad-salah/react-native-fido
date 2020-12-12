@@ -178,7 +178,7 @@ public class RNFido2Module extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void registerFido2(ReadableArray keyHandles, String challenge, ReadableArray params, Promise promise) {
+    public void registerFido2(ReadableArray keyHandles, String challenge, ReadableArray params, ReadableMap options, Promise promise) {
         mRegisterPromise = promise;
 
         // All the option parameters should come from the Relying Party / server
@@ -207,15 +207,34 @@ public class RNFido2Module extends ReactContextBaseJavaModule {
             parameters.add(parameter);
         }
 
+        Double timeout = options.getDouble("timeout");
+        
+        if (timeout == null) {
+            timeout = 60d
+        }
+
+        Boolean requireResidentKey = options.getBoolean("requireResidentKey");
+
+        if (requireResidentKey == null) {
+            requireResidentKey = true
+        }
+
+        String attestationPreference = options.getString("attestationPreference");
+
+        if (attestationPreference == null) {
+            attestationPreference = "none"
+        }
+
         PublicKeyCredentialCreationOptions options = new PublicKeyCredentialCreationOptions.Builder()
             .setRp(rpEntity)
             .setUser(currentUser)
             .setAttestationConveyancePreference(
-                    AttestationConveyancePreference.NONE
+                    attestationPreference === "none" ? AttestationConveyancePreference.NONE : attestationPreference === "direct" ? AttestationConveyancePreference.DIRECT : AttestationConveyancePreference.INDIRECT
             )
             .setChallenge(Base64.decode(challenge, Base64.DEFAULT))
             .setParameters(parameters)
-            .setTimeoutSeconds(60d)
+            .setTimeoutSeconds(timeout)
+            .setRequireResidentKey(requireResidentKey)
             .build();
 
         Fido2ApiClient fido2ApiClient = Fido.getFido2ApiClient(this.reactContext);

@@ -1,4 +1,4 @@
-import { NativeModules } from "react-native";
+import { NativeModules, Platform } from "react-native";
 
 const { RNFido2 } = NativeModules;
 
@@ -19,17 +19,42 @@ const Fido2 = {
     keyHandles = [],
     challenge,
     appId,
-    publicKeyAlgorithms
-  }) => {
-    if (appId) {
-      Fido2.setAppId({ url: appId });
+    publicKeyAlgorithms,
+    options = {
+      timeout: 60,
+      requireResidentKey: true,
+      attestationPreference: "direct",
+      userVerification: "discouraged"
     }
-    const signedData = await RNFido2.registerFido2(
-      keyHandles,
-      challenge,
-      publicKeyAlgorithms
-    );
-    return signedData;
+  }) => {
+    if (Platform.OS === "android") {
+      if (appId) {
+        Fido2.setAppId({ url: appId });
+      }
+      const signedData = await RNFido2.registerFido2(
+        keyHandles,
+        challenge,
+        publicKeyAlgorithms,
+        {
+          timeout: 60,
+          requireResidentKey: true,
+          attestationPreference: "direct",
+          ...options
+        }
+      );
+      return signedData;
+    }
+
+    if (Platform.OS === "ios") {
+      const signedData = await RNFido2.registerFido2(
+        challenge,
+        options.attestationPreference,
+        options.timeout,
+        options.requireResidentKey,
+        options.userVerification
+      );
+      return signedData;
+    }
   },
   signChallenge: async ({ keyHandles, challenge, appId = "" }) => {
     if (appId) {
