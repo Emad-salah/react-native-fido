@@ -3,6 +3,17 @@ import { NativeModules, Platform } from "react-native";
 const { RNFido2 } = NativeModules;
 
 const Fido2 = {
+  init: async origin => {
+    if (!origin) {
+      throw new Error("Please specify an origin URL");
+    }
+
+    if (Platform.OS === "ios") {
+      return RNFido2.init(origin);
+    }
+
+    return "Initialized";
+  },
   setRpId: async ({ id, url, icon }) => {
     const rpEntity = await RNFido2.setRpId(id, url, icon);
     return rpEntity;
