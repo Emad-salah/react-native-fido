@@ -1,6 +1,6 @@
 #import <React/RCTBridgeModule.h>
 
-@interface RCT_EXTERN_MODULE(RNYubikit, NSObject)
+@interface RCT_EXTERN_MODULE(RNFido2, NSObject)
   RCT_EXTERN_METHOD(init:(NSString *)type resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
 
   RCT_EXTERN_METHOD(setRpId:(NSString *)id name:(NSString *)name icon:(NSString *)icon resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
