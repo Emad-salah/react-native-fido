@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		B3E7B58A1CC2AC0600A0062D /* RNFido2.m in Sources */ = {isa = PBXBuildFile; fileRef = B3E7B5891CC2AC0600A0062D /* RNFido2.m */; };
+		C390A8D325877F8D00986A00 /* RnFido2.swift in Sources */ = {isa = PBXBuildFile; fileRef = C390A8D225877F8D00986A00 /* RnFido2.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -26,6 +27,8 @@
 		134814201AA4EA6300B7C361 /* libRNFido2.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libRNFido2.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		B3E7B5881CC2AC0600A0062D /* RNFido2.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RNFido2.h; sourceTree = "<group>"; };
 		B3E7B5891CC2AC0600A0062D /* RNFido2.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RNFido2.m; sourceTree = "<group>"; };
+		C390A8D225877F8D00986A00 /* RnFido2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = RnFido2.swift; path = "/Users/user152971/Desktop/react-native-fido/ios/RnFido2.swift"; sourceTree = "<absolute>"; };
+		C390A8D425877F9E00986A00 /* RnFido2-Bridging-Header.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "RnFido2-Bridging-Header.h"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -50,8 +53,10 @@
 		58B511D21A9E6C8500147676 = {
 			isa = PBXGroup;
 			children = (
+				C390A8D425877F9E00986A00 /* RnFido2-Bridging-Header.h */,
 				B3E7B5881CC2AC0600A0062D /* RNFido2.h */,
 				B3E7B5891CC2AC0600A0062D /* RNFido2.m */,
+				C390A8D225877F8D00986A00 /* RnFido2.swift */,
 				134814211AA4EA7D00B7C361 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -95,6 +100,7 @@
 			developmentRegion = English;
 			hasScannedForEncodings = 0;
 			knownRegions = (
+				English,
 				en,
 			);
 			mainGroup = 58B511D21A9E6C8500147676;
@@ -112,6 +118,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C390A8D325877F8D00986A00 /* RnFido2.swift in Sources */,
 				B3E7B58A1CC2AC0600A0062D /* RNFido2.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -166,6 +173,8 @@
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
+				SWIFT_OBJC_BRIDGING_HEADER = "RnFido2-Bridging-Header.h";
+				SWIFT_VERSION = 5.0;
 			};
 			name = Debug;
 		};
@@ -208,6 +217,8 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
+				SWIFT_OBJC_BRIDGING_HEADER = "RnFido2-Bridging-Header.h";
+				SWIFT_VERSION = 5.0;
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
@@ -216,7 +227,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				HEADER_SEARCH_PATHS = (
-				"$(inherited)",
+					"$(inherited)",
 					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
 					"$(SRCROOT)/../../../React/**",
 					"$(SRCROOT)/../../react-native/React/**",
@@ -225,6 +236,7 @@
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = RNFido2;
 				SKIP_INSTALL = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "RnFido2-Bridging-Header.h";
 			};
 			name = Debug;
 		};
@@ -241,6 +253,7 @@
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = RNFido2;
 				SKIP_INSTALL = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "RnFido2-Bridging-Header.h";
 			};
 			name = Release;
 		};
