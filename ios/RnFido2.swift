@@ -138,8 +138,8 @@ class RNFido2: NSObject {
     func registerFido2(
         _ challenge: String,
         attestation: String = "direct",
-        optionTimeoutNumber: NSNumber? = NSNumber(value: 60),
-        optionRequireResidentKey: Bool,
+        timeoutNumber: NSNumber? = NSNumber(value: 60),
+        requireResidentKey: Bool,
         userVerification: String = "discouraged",
         resolver resolve: @escaping RCTPromiseResolveBlock,
         rejecter reject: @escaping RCTPromiseRejectBlock
@@ -149,7 +149,7 @@ class RNFido2: NSObject {
           return
         }
 
-        guard let webAuthn = self.webAuthn else {
+        guard let webAuthn = self.webAuthnClient else {
           reject("RegisterError", "Please initialize the lib before performing any operation", nil)
           return
         }
@@ -164,17 +164,22 @@ class RNFido2: NSObject {
           return
         }
 
+        guard let userId = requestUser["id"] else {
+          reject("RegisterError", "Please use .setUser before calling the register function", nil)
+          return
+        }
+
         let timeout = timeoutNumber?.intValue ?? 60
         var options = PublicKeyCredentialCreationOptions()
 
         options.challenge = Bytes.fromHex(challenge) // must be Array<UInt8>
-        options.user.id = Bytes.fromString(requestUser["id"]) // must be Array<UInt8>
-        options.user.name = requestUser["name"]
-        options.user.displayName = requestUser["displayName"]
-        options.user.icon = requestUser["icon"]  // Optional
-        options.rp.id = requestRpId["id"]
-        options.rp.name = requestRpId["name"]
-        options.rp.icon = requestRpId["icon"] // Optional
+        options.user.id = Bytes.fromString(userId) // must be Array<UInt8>
+        options.user.name = requestUser["name"] as? String ?? ""
+        options.user.displayName = requestUser["displayName"] as? String ?? ""
+        options.user.icon = requestUser["icon"] as? String ?? ""  // Optional
+        options.rp.id = requestRpId["id"] as? String ?? ""
+        options.rp.name = requestRpId["name"] as? String ?? ""
+        options.rp.icon = requestRpId["icon"] as? String ?? "" // Optional
         options.attestation = getEnumValue(value: attestation)
 
         options.addPubKeyCredParam(alg: .es256)
