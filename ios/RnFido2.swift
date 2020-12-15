@@ -36,15 +36,18 @@ class RNFido2: NSObject {
       rejecter reject: @escaping RCTPromiseRejectBlock
     ) {
       let presentedViewController = RCTPresentedViewController();
-      if (presentedViewController != nil) {
-        let userConsentUI = UserConsentUI(viewController: presentedViewController)
-        let authenticator = InternalAuthenticator(ui: userConsentUI)
 
-        self.webAuthnClient = WebAuthnClient(
-          origin: origin,
-          authenticator: authenticator
-        )
+      guard let currentViewController = presentedViewController else {
+        return
       }
+
+      let userConsentUI = UserConsentUI(viewController: currentViewController)
+      let authenticator = InternalAuthenticator(ui: userConsentUI)
+
+      self.webAuthnClient = WebAuthnClient(
+        origin: origin,
+        authenticator: authenticator
+      )
     }
 
     @objc
@@ -134,29 +137,29 @@ class RNFido2: NSObject {
     @objc
     func registerFido2(
         _ challenge: String,
-        attestation: String? = "direct",
-        timeoutNumber: NSNumber? = NSNumber(value: 60),
-        requireResidentKey: Bool? = false,
-        userVerification: String? = "discouraged",
+        attestation: String = "direct",
+        optionTimeoutNumber: NSNumber? = NSNumber(value: 60),
+        optionRequireResidentKey: Bool,
+        userVerification: String = "discouraged",
         resolver resolve: @escaping RCTPromiseResolveBlock,
         rejecter reject: @escaping RCTPromiseRejectBlock
     ) -> Void {
-        if self.webAuthnClient == nil {
-          reject("RegisterError", "Please initialize the lib before performing any operation", nil)
-          return
-        }
-
         if challenge.isEmpty {
           reject("RegisterError", "Please specify a challenge", nil)
           return
         }
 
-        if user == nil {
+        guard let webAuthn = self.webAuthn else {
+          reject("RegisterError", "Please initialize the lib before performing any operation", nil)
+          return
+        }
+
+        guard let requestUser = user else {
           reject("RegisterError", "Please use .setUser before calling the register function", nil)
           return
         }
 
-        if rpId == nil {
+        guard let requestRpId = rpId else {
           reject("RegisterError", "Please use .setRpId before calling the register function", nil)
           return
         }
@@ -165,16 +168,14 @@ class RNFido2: NSObject {
         var options = PublicKeyCredentialCreationOptions()
 
         options.challenge = Bytes.fromHex(challenge) // must be Array<UInt8>
-        options.user.id = Bytes.fromString(user["id"]) // must be Array<UInt8>
-        options.user.name = user["name"]
-        options.user.displayName = user["displayName"]
-        options.user.icon = user["icon"]  // Optional
-        options.rp.id = rpId["id"]
-        options.rp.name = rpId["name"]
-        options.rp.icon = rpId["icon"] // Optional
+        options.user.id = Bytes.fromString(requestUser["id"]) // must be Array<UInt8>
+        options.user.name = requestUser["name"]
+        options.user.displayName = requestUser["displayName"]
+        options.user.icon = requestUser["icon"]  // Optional
+        options.rp.id = requestRpId["id"]
+        options.rp.name = requestRpId["name"]
+        options.rp.icon = requestRpId["icon"] // Optional
         options.attestation = getEnumValue(value: attestation)
-
-
 
         options.addPubKeyCredParam(alg: .es256)
         options.authenticatorSelection = AuthenticatorSelectionCriteria(
@@ -182,7 +183,7 @@ class RNFido2: NSObject {
             userVerification: getEnumValue(value: userVerification) // (choose from .required, .preferred, .discouraged)
         )
 
-        self.webAuthnClient.create(options).then { credential in
+        webAuthn.create(options).then { credential in
           // send parameters to your server
 
           // credential.id
