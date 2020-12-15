@@ -1,6 +1,7 @@
 import Foundation
 import WebAuthnKit
 import UIKit
+import PromiseKit
 
 struct Log: TextOutputStream {
 
@@ -31,7 +32,7 @@ class RNFido2: NSObject {
 
     @objc
     func initialize(
-      _ origin: String, 
+      _ origin: String,
       resolver resolve: @escaping RCTPromiseResolveBlock,
       rejecter reject: @escaping RCTPromiseRejectBlock
     ) {
@@ -164,12 +165,12 @@ class RNFido2: NSObject {
           return
         }
 
-        guard let userId = requestUser["id"] else {
+        guard let userId = requestUser["id"] as? String else {
           reject("RegisterError", "Please use .setUser before calling the register function", nil)
           return
         }
 
-        let timeout = timeoutNumber?.intValue ?? 60
+//        let timeout = timeoutNumber?.intValue ?? 60
         var options = PublicKeyCredentialCreationOptions()
 
         options.challenge = Bytes.fromHex(challenge) // must be Array<UInt8>
@@ -180,15 +181,17 @@ class RNFido2: NSObject {
         options.rp.id = requestRpId["id"] as? String ?? ""
         options.rp.name = requestRpId["name"] as? String ?? ""
         options.rp.icon = requestRpId["icon"] as? String ?? "" // Optional
-        options.attestation = getEnumValue(value: attestation)
+        options.attestation = getEnumValue(value: attestation) as! AttestationConveyancePreference
 
         options.addPubKeyCredParam(alg: .es256)
         options.authenticatorSelection = AuthenticatorSelectionCriteria(
             requireResidentKey: requireResidentKey, // this flag is ignored by InternalAuthenticator
-            userVerification: getEnumValue(value: userVerification) // (choose from .required, .preferred, .discouraged)
+            userVerification: getEnumValue(value: userVerification) as! UserVerificationRequirement // (choose from .required, .preferred, .discouraged)
         )
-
-        webAuthn.create(options).then { credential in
+        
+        firstly {
+            webAuthn.create(options)
+        }.done { (credential: WebAuthnClient.CreateResponse) in
           // send parameters to your server
 
           // credential.id
@@ -205,8 +208,10 @@ class RNFido2: NSObject {
 
           resolve(response)
         }.catch { error in
-          // error handling
-          reject("WebAuthnCreateError", error, nil)
+            // error handling
+            let errorType: String? = "WebAuthnCreateError"
+            let errorCast: Error? = error
+            reject(errorType, "Failed to create a new WebAuthn credential", errorCast)
         }
     }
 }
