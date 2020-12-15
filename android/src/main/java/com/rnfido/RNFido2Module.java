@@ -209,27 +209,27 @@ public class RNFido2Module extends ReactContextBaseJavaModule {
 
         Double timeout = options.getDouble("timeout");
         
-        if (timeout == null) {
-            timeout = 60d
+        if (timeout == null || timeout == 0d) {
+            timeout = 60d;
         }
 
         Boolean requireResidentKey = options.getBoolean("requireResidentKey");
 
         if (requireResidentKey == null) {
-            requireResidentKey = true
+            requireResidentKey = true;
         }
 
         String attestationPreference = options.getString("attestationPreference");
 
-        if (attestationPreference == null) {
-            attestationPreference = "none"
+        if (attestationPreference == null || attestationPreference.equals("")) {
+            attestationPreference = "none";
         }
 
         PublicKeyCredentialCreationOptions options = new PublicKeyCredentialCreationOptions.Builder()
             .setRp(rpEntity)
             .setUser(currentUser)
             .setAttestationConveyancePreference(
-                    attestationPreference === "none" ? AttestationConveyancePreference.NONE : attestationPreference === "direct" ? AttestationConveyancePreference.DIRECT : AttestationConveyancePreference.INDIRECT
+                    attestationPreference == "none" ? AttestationConveyancePreference.NONE : attestationPreference == "direct" ? AttestationConveyancePreference.DIRECT : AttestationConveyancePreference.INDIRECT
             )
             .setChallenge(Base64.decode(challenge, Base64.DEFAULT))
             .setParameters(parameters)
