@@ -56,15 +56,15 @@ class RNFido2: NSObject {
       resolver resolve: @escaping RCTPromiseResolveBlock,
       rejecter reject: @escaping RCTPromiseRejectBlock
     ) {
-      if (id == nil) {
-        reject("RpIdError", "ID not specified")
+      if id.isEmpty {
+        reject("RpIdError", "ID not specified", nil)
       }
 
-      if (name == nil) {
-        reject("RpIdError", "Name not specified")
+      if name.isEmpty {
+        reject("RpIdError", "Name not specified", nil)
       }
 
-      self.rpId = [
+      rpId = [
         "id": id,
         "name": name,
         "icon": icon
@@ -82,19 +82,19 @@ class RNFido2: NSObject {
       resolver resolve: @escaping RCTPromiseResolveBlock,
       rejecter reject: @escaping RCTPromiseRejectBlock
     ) {
-      if (identifier == nil) {
-        reject("RpIdError", "ID not specified")
+      if identifier.isEmpty {
+        reject("RpIdError", "ID not specified", nil)
       }
 
-      if (name == nil) {
-        reject("RpIdError", "Name not specified")
+      if name.isEmpty {
+        reject("RpIdError", "Name not specified", nil)
       }
 
-      if (displayName == nil) {
-        reject("RpIdError", "Display name not specified")
+      if displayName.isEmpty {
+        reject("RpIdError", "Display name not specified", nil)
       }
 
-      self.user = [
+      user = [
         "id": identifier,
         "name": name,
         "displayName": name,
@@ -106,87 +106,82 @@ class RNFido2: NSObject {
 
     func getEnumValue(value: String) -> Any {
       if (value == "direct") {
-        return .direct
+        return AttestationConveyancePreference.direct
       }
 
       if (value == "indirect") {
-        return .indirect
+        return AttestationConveyancePreference.indirect
       }
 
       if (value == "none") {
-        return .none
+        return AttestationConveyancePreference.none
       }
 
       if (value == "required") {
-        return .required
+        return UserVerificationRequirement.required
       }
 
       if (value == "preferred") {
-        return .preferred
+        return UserVerificationRequirement.preferred
       }
 
       if (value == "discouraged") {
-        return .discouraged
+        return UserVerificationRequirement.discouraged
       }
 
-      return nil
+      return AttestationConveyancePreference.none
     }
     
     @objc
     func registerFido2(
         _ challenge: String,
         attestation: String? = "direct",
-        timeoutNumber: NSNumber? = NSNumber(int: 60),
+        timeoutNumber: NSNumber? = NSNumber(value: 60),
         requireResidentKey: Bool? = false,
         userVerification: String? = "discouraged",
         resolver resolve: @escaping RCTPromiseResolveBlock,
         rejecter reject: @escaping RCTPromiseRejectBlock
     ) -> Void {
-        if (webAuthnClient == nil) {
-          reject("RegisterError", "Please initialize the lib before performing any operation")
+        if self.webAuthnClient == nil {
+          reject("RegisterError", "Please initialize the lib before performing any operation", nil)
           return
         }
 
-        if (challenge == nil) {
-          reject("RegisterError", "Please specify a challenge")
+        if challenge.isEmpty {
+          reject("RegisterError", "Please specify a challenge", nil)
           return
         }
 
-        if (user == nil) {
-          reject("RegisterError", "Please use .setUser before calling the register function")
+        if user == nil {
+          reject("RegisterError", "Please use .setUser before calling the register function", nil)
           return
         }
 
-        if (rpId == nil) {
-          reject("RegisterError", "Please use .setRpId before calling the register function")
+        if rpId == nil {
+          reject("RegisterError", "Please use .setRpId before calling the register function", nil)
           return
         }
 
-        let timeout = timeoutNumber?.integerValue ?? 60
-        let options = PublicKeyCredentialCreationOptions()
+        let timeout = timeoutNumber?.intValue ?? 60
+        var options = PublicKeyCredentialCreationOptions()
 
         options.challenge = Bytes.fromHex(challenge) // must be Array<UInt8>
-        options.user.id = Bytes.fromString(user.userId) // must be Array<UInt8>
-        options.user.name = user.name
-        options.user.displayName = user.displayName
-        options.user.icon = user.icon  // Optional
-        options.rp.id = rpId.id
-        options.rp.name = rpId.name
-        options.rp.icon = rpId.icon // Optional
-        options.attestation = getEnumValue(attestation)
+        options.user.id = Bytes.fromString(user["id"]) // must be Array<UInt8>
+        options.user.name = user["name"]
+        options.user.displayName = user["displayName"]
+        options.user.icon = user["icon"]  // Optional
+        options.rp.id = rpId["id"]
+        options.rp.name = rpId["name"]
+        options.rp.icon = rpId["icon"] // Optional
+        options.attestation = getEnumValue(value: attestation)
 
 
 
         options.addPubKeyCredParam(alg: .es256)
         options.authenticatorSelection = AuthenticatorSelectionCriteria(
             requireResidentKey: requireResidentKey, // this flag is ignored by InternalAuthenticator
-            userVerification: getEnumValue(attestation) // (choose from .required, .preferred, .discouraged)
+            userVerification: getEnumValue(value: userVerification) // (choose from .required, .preferred, .discouraged)
         )
-
-        if (attestation != nil) {
-          reject("RegisterError", "Please specify a challenge")
-          return
-        }
 
         self.webAuthnClient.create(options).then { credential in
           // send parameters to your server
@@ -206,7 +201,7 @@ class RNFido2: NSObject {
           resolve(response)
         }.catch { error in
           // error handling
-          reject("WebAuthnCreateError", error)
+          reject("WebAuthnCreateError", error, nil)
         }
     }
 }
