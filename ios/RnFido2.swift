@@ -30,7 +30,7 @@ class RNFido2: NSObject {
     private var accessorySessionStateObservation: NSKeyValueObservation?
 
     @objc
-    func init(
+    func initialize(
       _ origin: String, 
       resolver resolve: @escaping RCTPromiseResolveBlock,
       rejecter reject: @escaping RCTPromiseRejectBlock
