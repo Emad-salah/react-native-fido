@@ -36,7 +36,7 @@ class RNFido2: NSObject {
       rejecter reject: @escaping RCTPromiseRejectBlock
     ) {
       let presentedViewController = RCTPresentedViewController();
-      if (rootViewController != nil) {
+      if (presentedViewController != nil) {
         let userConsentUI = UserConsentUI(viewController: presentedViewController)
         let authenticator = InternalAuthenticator(ui: userConsentUI)
 
