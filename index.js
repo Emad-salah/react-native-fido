@@ -50,7 +50,7 @@ const Fido2 = {
       ...(options || {})
     };
     if (appId) {
-      Fido2.setAppId({ url: appId });
+      await Fido2.setAppId({ url: appId });
     }
     const signedData = await Platform.select({
       ios: RNFido2.registerFido2(
@@ -71,7 +71,7 @@ const Fido2 = {
   },
   signChallenge: async ({ keyHandles, challenge, appId = "" }) => {
     if (appId) {
-      Fido2.setAppId({ url: appId });
+      await Fido2.setAppId({ url: appId });
     }
     const signedData = await RNFido2.signFido2(keyHandles, challenge);
     return signedData;
