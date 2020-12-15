@@ -178,7 +178,7 @@ public class RNFido2Module extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void registerFido2(ReadableArray keyHandles, String challenge, ReadableArray params, ReadableMap options, Promise promise) {
+    public void registerFido2(ReadableArray keyHandles, String challenge, ReadableArray params, ReadableMap requestOptions, Promise promise) {
         mRegisterPromise = promise;
 
         // All the option parameters should come from the Relying Party / server
@@ -207,19 +207,13 @@ public class RNFido2Module extends ReactContextBaseJavaModule {
             parameters.add(parameter);
         }
 
-        Double timeout = options.getDouble("timeout");
+        Double timeout = requestOptions.getDouble("timeout");
         
         if (timeout == null || timeout == 0d) {
             timeout = 60d;
         }
 
-        Boolean requireResidentKey = options.getBoolean("requireResidentKey");
-
-        if (requireResidentKey == null) {
-            requireResidentKey = true;
-        }
-
-        String attestationPreference = options.getString("attestationPreference");
+        String attestationPreference = requestOptions.getString("attestationPreference");
 
         if (attestationPreference == null || attestationPreference.equals("")) {
             attestationPreference = "none";
@@ -234,7 +228,6 @@ public class RNFido2Module extends ReactContextBaseJavaModule {
             .setChallenge(Base64.decode(challenge, Base64.DEFAULT))
             .setParameters(parameters)
             .setTimeoutSeconds(timeout)
-            .setRequireResidentKey(requireResidentKey)
             .build();
 
         Fido2ApiClient fido2ApiClient = Fido.getFido2ApiClient(this.reactContext);
