@@ -35,10 +35,9 @@ class RNFido2: NSObject {
       resolver resolve: @escaping RCTPromiseResolveBlock,
       rejecter reject: @escaping RCTPromiseRejectBlock
     ) {
-      let app = UIApplication.shared.delegate as! AppDelegate
-      let rootViewController = app?.window??.rootViewController
+      let presentedViewController = RCTPresentedViewController();
       if (rootViewController != nil) {
-        let userConsentUI = UserConsentUI(viewController: rootViewController)
+        let userConsentUI = UserConsentUI(viewController: presentedViewController)
         let authenticator = InternalAuthenticator(ui: userConsentUI)
 
         self.webAuthnClient = WebAuthnClient(

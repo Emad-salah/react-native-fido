@@ -1,2 +1,2 @@
 #import "React/RCTBridgeModule.h"
-#import "AppDelegate.h"
+#import <React/RCTUtils.h>
