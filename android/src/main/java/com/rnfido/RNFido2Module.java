@@ -61,6 +61,7 @@ public class RNFido2Module extends ReactContextBaseJavaModule {
     private static final int REQUEST_CODE_SIGN = 111;
     private static final String E_SIGN_CANCELLED = "E_SIGN_CANCELLED";
     private static final String E_REGISTER_CANCELLED = "E_REGISTER_CANCELLED";
+    private static final String E_AUTHENTICATOR_ERROR = "E_AUTHENTICATOR_ERROR";
     private static final String TAG = "RNFido2";
 
     private Promise mSignPromise;
@@ -81,21 +82,29 @@ public class RNFido2Module extends ReactContextBaseJavaModule {
                     if (resultCode == Activity.RESULT_CANCELED) {
                         mSignPromise.reject(E_SIGN_CANCELLED, "Sign was cancelled");
                     } else if (resultCode == Activity.RESULT_OK) {
-                        Log.i(TAG, "Received response from Security Key");
-                        AuthenticatorAssertionResponse signedData =
+                        if (intent.hasExtra(Fido.FIDO2_KEY_ERROR_EXTRA)) {
+                            AuthenticatorErrorResponse authenticatorErrorResponse = 
+                                AuthenticatorErrorResponse.deserializeFromBytes(
+                                    intent.getByteArrayExtra(Fido.FIDO2_KEY_ERROR_EXTRA));
+                            Log.e(TAG, "FIDO2_KEY_ERROR_EXTRA Security Key: " + authenticatorErrorResponse.getErrorMessage());
+                            mSignPromise.reject(E_AUTHENTICATOR_ERROR, authenticatorErrorResponse.getErrorMessage());
+                        } else if (intent.hasExtra(Fido.FIDO2_KEY_RESPONSE_EXTRA)) {
+                            Log.i(TAG, "Received response from Security Key");
+                            AuthenticatorAssertionResponse signedData =
                                 AuthenticatorAssertionResponse.deserializeFromBytes(
-                                        intent.getByteArrayExtra(Fido.FIDO2_KEY_RESPONSE_EXTRA));
-                        WritableMap response = Arguments.createMap();
-                        byte[] userHandle = signedData.getUserHandle();
-                        response.putString("clientDataJSON", Base64.encodeToString(signedData.getClientDataJSON(), Base64.URL_SAFE));
-                        response.putString("attestationObject", Base64.encodeToString(signedData.getAuthenticatorData(), Base64.URL_SAFE));
-                        response.putString("id", Base64.encodeToString(signedData.getKeyHandle(), Base64.URL_SAFE));
-                        response.putString("rawId", Base64.encodeToString(signedData.getKeyHandle(), Base64.URL_SAFE));
-                        response.putString("signature", Base64.encodeToString(signedData.getSignature(), Base64.URL_SAFE));
-                        if (userHandle != null) {
-                            response.putString("userHandle", Base64.encodeToString(userHandle, Base64.URL_SAFE));
+                                    intent.getByteArrayExtra(Fido.FIDO2_KEY_RESPONSE_EXTRA));
+                            WritableMap response = Arguments.createMap();
+                            byte[] userHandle = signedData.getUserHandle();
+                            response.putString("clientDataJSON", Base64.encodeToString(signedData.getClientDataJSON(), Base64.URL_SAFE));
+                            response.putString("attestationObject", Base64.encodeToString(signedData.getAuthenticatorData(), Base64.URL_SAFE));
+                            response.putString("id", Base64.encodeToString(signedData.getKeyHandle(), Base64.URL_SAFE));
+                            response.putString("rawId", Base64.encodeToString(signedData.getKeyHandle(), Base64.URL_SAFE));
+                            response.putString("signature", Base64.encodeToString(signedData.getSignature(), Base64.URL_SAFE));
+                            if (userHandle != null) {
+                                response.putString("userHandle", Base64.encodeToString(userHandle, Base64.URL_SAFE));
+                            }
+                            mSignPromise.resolve(response);
                         }
-                        mSignPromise.resolve(response);
                     }
                 }
                 mSignPromise = null;
@@ -109,12 +118,13 @@ public class RNFido2Module extends ReactContextBaseJavaModule {
                         mRegisterPromise.reject(E_REGISTER_CANCELLED, "Register was cancelled");
                     } else if (resultCode == Activity.RESULT_OK) {
                         if (intent.hasExtra(Fido.FIDO2_KEY_ERROR_EXTRA)) {
-                            AuthenticatorErrorResponse response =
+                            AuthenticatorErrorResponse authenticatorErrorResponse =
                                 AuthenticatorErrorResponse.deserializeFromBytes(
                                     intent.getByteArrayExtra(Fido.FIDO2_KEY_ERROR_EXTRA));
-                            Log.e(TAG, "FIDO2_KEY_ERROR_EXTRA Security Key");
+                            Log.e(TAG, "FIDO2_KEY_ERROR_EXTRA Security Key: " + authenticatorErrorResponse.getErrorMessage());
+                            mSignPromise.reject(E_AUTHENTICATOR_ERROR, authenticatorErrorResponse.getErrorMessage());
                         }
-
+                        
                         if (intent.hasExtra(Fido.FIDO2_KEY_RESPONSE_EXTRA)) {
                             Log.i(TAG, "Received response from Security Key: " + Base64.encode(intent.getByteArrayExtra(Fido.FIDO2_KEY_RESPONSE_EXTRA), Base64.DEFAULT));
                             AuthenticatorAttestationResponse signedData =
