@@ -39,6 +39,7 @@ class RNFido2: NSObject {
       let presentedViewController = RCTPresentedViewController();
 
       guard let currentViewController = presentedViewController else {
+        print("[Fido2 Swift] Error: Unable to retrieve the current view controller", to: &logger)
         reject("WebAuthnInitializeError", "Unable to retrieve the current view controller", nil)
         return
       }
@@ -50,6 +51,8 @@ class RNFido2: NSObject {
         origin: origin,
         authenticator: authenticator
       )
+
+      print("[Fido2 Swift] Initialized view controller successfully!", to: &logger)
 
       resolve(true)
     }
@@ -63,11 +66,15 @@ class RNFido2: NSObject {
       rejecter reject: @escaping RCTPromiseRejectBlock
     ) {
       if id.isEmpty {
+        print("[Fido2 Swift] RpIdError: ID not specified", to: &logger)
         reject("RpIdError", "ID not specified", nil)
+        return
       }
 
       if name.isEmpty {
+        print("[Fido2 Swift] RpIdError: Name not specified", to: &logger)
         reject("RpIdError", "Name not specified", nil)
+        return
       }
 
       rpId = [
@@ -76,6 +83,7 @@ class RNFido2: NSObject {
         "icon": icon
       ]
 
+      print("[Fido2 Swift] RpId has been set successfully!", to: &logger)
       resolve("RpId has been set successfully!")
     }
 
@@ -89,15 +97,21 @@ class RNFido2: NSObject {
       rejecter reject: @escaping RCTPromiseRejectBlock
     ) {
       if identifier.isEmpty {
+        print("[Fido2 Swift] RpIdError: ID not specified", to: &logger)
         reject("RpIdError", "ID not specified", nil)
+        return
       }
 
       if name.isEmpty {
+        print("[Fido2 Swift] RpIdError: Name not specified", to: &logger)
         reject("RpIdError", "Name not specified", nil)
+        return
       }
 
       if displayName.isEmpty {
+        print("[Fido2 Swift] RpIdError: Display name not specified", to: &logger)
         reject("RpIdError", "Display name not specified", nil)
+        return
       }
 
       user = [
@@ -107,6 +121,7 @@ class RNFido2: NSObject {
         "icon": icon
       ]
 
+      print("[Fido2 Swift] User has been set successfully!", to: &logger)
       resolve("User has been set successfully!")
     }
 
@@ -149,26 +164,31 @@ class RNFido2: NSObject {
         rejecter reject: @escaping RCTPromiseRejectBlock
     ) -> Void {
         if challenge.isEmpty {
+          print("[Fido2 Swift] Error: Please specify a challenge", to: &logger)
           reject("RegisterError", "Please specify a challenge", nil)
           return
         }
 
         guard let webAuthn = self.webAuthnClient else {
+          print("[Fido2 Swift] Error: Please initialize the lib before performing any operation", to: &logger)
           reject("RegisterError", "Please initialize the lib before performing any operation", nil)
           return
         }
 
         guard let requestUser = user else {
+          print("[Fido2 Swift] Error: Please use .setUser before calling the register function", to: &logger)
           reject("RegisterError", "Please use .setUser before calling the register function", nil)
           return
         }
 
         guard let requestRpId = rpId else {
+          print("[Fido2 Swift] Error: Please use .setRpId before calling the register function", to: &logger)
           reject("RegisterError", "Please use .setRpId before calling the register function", nil)
           return
         }
 
         guard let userId = requestUser["id"] as? String else {
+          print("[Fido2 Swift] Error: Please use .setUser before calling the register function", to: &logger)
           reject("RegisterError", "Please use .setUser before calling the register function", nil)
           return
         }
@@ -214,7 +234,7 @@ class RNFido2: NSObject {
             // error handling
             let errorType: String? = "WebAuthnCreateError"
             let errorCast: Error? = error
-            print("[iOS Swift] U2F Error: \(error.localizedDescription)", to: &logger)
+            print("[Fido2 Swift] WebAuthN.create Error: \(error.localizedDescription)", to: &logger)
             reject(errorType, "Failed to create a new WebAuthn credential", errorCast)
         }
     }
