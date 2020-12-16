@@ -211,6 +211,7 @@ class RNFido2: NSObject {
             // error handling
             let errorType: String? = "WebAuthnCreateError"
             let errorCast: Error? = error
+            print("[iOS Swift] U2F Error: \(error.localizedDescription)", to: &logger)
             reject(errorType, "Failed to create a new WebAuthn credential", errorCast)
         }
     }
