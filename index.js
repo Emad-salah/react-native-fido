@@ -28,9 +28,9 @@ const Fido2 = {
   },
   setUser: async ({ username, icon }) => {
     const user = await Platform.select({
-      ios: RNFido2.setUser(username, username, username, icon),
-      android: RNFido2.setUser(username, icon)
-    });
+      ios: () => RNFido2.setUser(username, username, username, icon),
+      android: () => RNFido2.setUser(username, icon)
+    })();
     return user;
   },
   registerKey: async ({
@@ -56,20 +56,22 @@ const Fido2 = {
       await Fido2.setAppId({ url: appId });
     }
     const signedData = await Platform.select({
-      ios: RNFido2.registerFido2(
-        challenge,
-        parsedOptions.attestationPreference,
-        parsedOptions.timeout,
-        parsedOptions.requireResidentKey,
-        parsedOptions.userVerification
-      ),
-      android: RNFido2.registerFido2(
-        keyHandles,
-        challenge,
-        publicKeyAlgorithms,
-        parsedOptions
-      )
-    });
+      ios: () =>
+        RNFido2.registerFido2(
+          challenge,
+          parsedOptions.attestationPreference,
+          parsedOptions.timeout,
+          parsedOptions.requireResidentKey,
+          parsedOptions.userVerification
+        ),
+      android: () =>
+        RNFido2.registerFido2(
+          keyHandles,
+          challenge,
+          publicKeyAlgorithms,
+          parsedOptions
+        )
+    })();
     return signedData;
   },
   signChallenge: async ({ keyHandles, challenge, appId = "" }) => {
