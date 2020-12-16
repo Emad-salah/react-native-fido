@@ -20,6 +20,9 @@ const Fido2 = {
     return rpEntity;
   },
   setAppId: async ({ url }) => {
+    if (Platform.OS === "ios") {
+      return url;
+    }
     const appId = await RNFido2.setAppId(url);
     return appId;
   },

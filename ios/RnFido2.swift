@@ -39,6 +39,7 @@ class RNFido2: NSObject {
       let presentedViewController = RCTPresentedViewController();
 
       guard let currentViewController = presentedViewController else {
+        reject("WebAuthnInitializeError", "Unable to retrieve the current view controller", nil)
         return
       }
 
@@ -49,6 +50,8 @@ class RNFido2: NSObject {
         origin: origin,
         authenticator: authenticator
       )
+
+      resolve(true)
     }
 
     @objc
