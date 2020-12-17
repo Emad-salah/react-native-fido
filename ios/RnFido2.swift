@@ -32,7 +32,7 @@ class RNFido2: NSObject {
 
     @objc
     func initialize(
-      _ origin: String,
+      _ hostOrigin: String?,
       resolver resolve: @escaping RCTPromiseResolveBlock,
       rejecter reject: @escaping RCTPromiseRejectBlock
     ) {
@@ -41,6 +41,12 @@ class RNFido2: NSObject {
       guard let currentViewController = presentedViewController else {
         print("[Fido2 Swift] Error: Unable to retrieve the current view controller", to: &logger)
         reject("WebAuthnInitializeError", "Unable to retrieve the current view controller", nil)
+        return
+      }
+
+      guard let origin = hostOrigin else {
+        print("[Fido2 Swift] Error: Please specify an origin URL", to: &logger)
+        reject("WebAuthnInitializeError", "Invalid origin URL specified", nil)
         return
       }
 
