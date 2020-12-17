@@ -161,7 +161,7 @@ class RNFido2: NSObject {
     
     @objc
     func registerFido2(
-        _ challenge: String,
+        _ base64URLChallenge: String,
         attestation: String = "direct",
         timeoutNumber: NSNumber? = NSNumber(value: 60),
         requireResidentKey: Bool,
@@ -199,10 +199,18 @@ class RNFido2: NSObject {
           return
         }
 
+        let challengeBase64 = base64URLChallenge
+          .replacingOccurrences(of: "-", with: "+")
+          .replacingOccurrences(of: "_", with: "/")
+        
+        let challengeData: Data = Data(base64Encoded: challengeBase64)!
+
+        let challenge = [UInt8](challengeData)
+
 //        let timeout = timeoutNumber?.intValue ?? 60
         var options = PublicKeyCredentialCreationOptions()
 
-        options.challenge = Bytes.fromHex(challenge) // must be Array<UInt8>
+        options.challenge = challenge // must be Array<UInt8>
         options.user.id = Bytes.fromString(userId) // must be Array<UInt8>
         options.user.name = requestUser["name"] as? String ?? ""
         options.user.displayName = requestUser["displayName"] as? String ?? ""
