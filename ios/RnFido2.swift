@@ -169,7 +169,7 @@ class RNFido2: NSObject {
         resolver resolve: @escaping RCTPromiseResolveBlock,
         rejecter reject: @escaping RCTPromiseRejectBlock
     ) -> Void {
-        if challenge.isEmpty {
+        if base64URLChallenge.isEmpty {
           print("[Fido2 Swift] Error: Please specify a challenge", to: &logger)
           reject("RegisterError", "Please specify a challenge", nil)
           return
