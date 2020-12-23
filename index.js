@@ -72,11 +72,24 @@ const Fido2 = {
     })();
     return signedData;
   },
-  signChallenge: async ({ keyHandles, challenge, appId = "", options }) => {
+  signChallenge: async ({
+    keyHandles,
+    challenge,
+    appId = "",
+    options = { timeout: 60 }
+  }) => {
+    const parsedOptions = {
+      timeout: 60,
+      ...(options || {})
+    };
     if (appId) {
       await Fido2.setAppId({ url: appId });
     }
-    const signedData = await RNFido2.signFido2(keyHandles, challenge, options);
+    const signedData = await RNFido2.signFido2(
+      keyHandles,
+      challenge,
+      parsedOptions
+    );
     return signedData;
   }
 };
