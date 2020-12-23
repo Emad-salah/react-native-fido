@@ -166,12 +166,12 @@ public class RNFido2Module extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void setRpId(String id, String url, String icon, Promise promise) {
+    public void setRpId(String id, String name, String icon, Promise promise) {
         if (icon == null || icon.isEmpty()) {
             icon = appIcon;
         }
         rpId = id;
-        rpEntity = new PublicKeyCredentialRpEntity(rpId, url, icon);
+        rpEntity = new PublicKeyCredentialRpEntity(rpId, name, icon);
         promise.resolve(id);
     }
 
@@ -182,8 +182,8 @@ public class RNFido2Module extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void setUser(String username, String icon, Promise promise) {
-        currentUser = new PublicKeyCredentialUserEntity(username.getBytes(), username, icon, username);
+    public void setUser(String id, String name, String icon, String displayName, Promise promise) {
+        currentUser = new PublicKeyCredentialUserEntity(Base64.decode(id, Base64.DEFAULT), name, icon, displayName);
         promise.resolve(true);
     }
 
@@ -233,7 +233,7 @@ public class RNFido2Module extends ReactContextBaseJavaModule {
             .setRp(rpEntity)
             .setUser(currentUser)
             .setAttestationConveyancePreference(
-                    attestationPreference == "none" ? AttestationConveyancePreference.NONE : attestationPreference == "direct" ? AttestationConveyancePreference.DIRECT : AttestationConveyancePreference.INDIRECT
+                    attestationPreference.toLowerCase().equals("none") ? AttestationConveyancePreference.NONE : attestationPreference.toLowerCase().equals("direct") ? AttestationConveyancePreference.DIRECT : AttestationConveyancePreference.INDIRECT
             )
             .setChallenge(Base64.decode(challenge, Base64.DEFAULT))
             .setParameters(parameters)
@@ -280,7 +280,7 @@ public class RNFido2Module extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void signFido2(ReadableArray keyHandles, String challenge, Promise promise) {
+    public void signFido2(ReadableArray keyHandles, String challenge, ReadableMap requestOptions, Promise promise) {
         if (appId.isEmpty()) {
             promise.reject("appId", "Please specify an App ID");
             return;
@@ -308,6 +308,12 @@ public class RNFido2Module extends ReactContextBaseJavaModule {
             );
         }
 
+        Double timeout = requestOptions.getDouble("timeout");
+
+        if (timeout == null || timeout == 0d) {
+            timeout = 60d;
+        }
+
         PublicKeyCredentialRequestOptions options = new PublicKeyCredentialRequestOptions.Builder()
             .setRpId(rpId)
             .setAuthenticationExtensions(
@@ -317,7 +323,7 @@ public class RNFido2Module extends ReactContextBaseJavaModule {
             )
             .setAllowList(allowedKeys)
             .setChallenge(Base64.decode(challenge, Base64.DEFAULT))
-            .setTimeoutSeconds(60d)
+            .setTimeoutSeconds(timeout)
             .build();
 
         Fido2ApiClient fido2ApiClient = Fido.getFido2ApiClient(this.reactContext);

@@ -15,21 +15,19 @@ const Fido2 = {
 
     return "Initialized";
   },
-  setRpId: async ({ id, url, icon }) => {
-    const rpEntity = await RNFido2.setRpId(id, url, icon);
+  setRpId: async ({ id, name, icon }) => {
+    const rpEntity = await RNFido2.setRpId(id, name, icon);
     return rpEntity;
   },
   setAppId: async ({ url }) => {
-    if (Platform.OS === "ios") {
-      return url;
-    }
     const appId = await RNFido2.setAppId(url);
     return appId;
   },
-  setUser: async ({ username, icon }) => {
+  setUser: async ({ id, username, displayName, icon }) => {
     const user = await Platform.select({
       ios: () => RNFido2.setUser(username, username, username, icon),
-      android: () => RNFido2.setUser(username, icon)
+      android: () =>
+        RNFido2.setUser(id, username, icon, displayName || username)
     })();
     return user;
   },
@@ -37,7 +35,7 @@ const Fido2 = {
     keyHandles = [],
     challenge,
     appId,
-    publicKeyAlgorithms = [-7],
+    publicKeyAlgorithms = [{ type: "public-key", alg: -7 }],
     options = {
       timeout: 60,
       requireResidentKey: true,
@@ -74,11 +72,11 @@ const Fido2 = {
     })();
     return signedData;
   },
-  signChallenge: async ({ keyHandles, challenge, appId = "" }) => {
+  signChallenge: async ({ keyHandles, challenge, appId = "", options }) => {
     if (appId) {
       await Fido2.setAppId({ url: appId });
     }
-    const signedData = await RNFido2.signFido2(keyHandles, challenge);
+    const signedData = await RNFido2.signFido2(keyHandles, challenge, options);
     return signedData;
   }
 };
