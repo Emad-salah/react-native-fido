@@ -2,6 +2,27 @@ import { NativeModules, Platform } from "react-native";
 
 const { RNFido2 } = NativeModules;
 
+const toWebsafeBase64 = (text = "") => {
+  return text
+    .replace(/\//g, "_")
+    .replace(/\+/g, "-")
+    .replace(/[=]/g, "")
+    .replace(/\\n/g, "")
+    .replace(/\n/g, "");
+};
+
+const toNormalBase64 = (text = "") => {
+  let encoded = text
+    .replace(/\-/g, "+")
+    .replace(/\_/g, "/")
+    .replace(/\\n/g, "")
+    .replace(/\n/g, "");
+  while (encoded.length % 4) {
+    encoded += "=";
+  }
+  return encoded;
+};
+
 const Fido2 = {
   init: async origin => {
     if (!origin) {
@@ -56,7 +77,7 @@ const Fido2 = {
     const signedData = await Platform.select({
       ios: () =>
         RNFido2.registerFido2(
-          challenge,
+          toNormalBase64(challenge),
           parsedOptions.attestationPreference,
           parsedOptions.timeout,
           parsedOptions.requireResidentKey,
@@ -64,13 +85,19 @@ const Fido2 = {
         ),
       android: () =>
         RNFido2.registerFido2(
-          keyHandles,
-          challenge,
+          keyHandles.map(keyHandle => toNormalBase64(keyHandle)),
+          toNormalBase64(challenge),
           publicKeyAlgorithms,
           parsedOptions
         )
     })();
-    return signedData;
+    const parsedSignedData = {
+      id: toWebsafeBase64(signedData.id),
+      rawId: toWebsafeBase64(signedData.rawId),
+      clientDataJSON: toWebsafeBase64(signedData.clientDataJSON),
+      attestationObject: toWebsafeBase64(signedData.attestationObject)
+    };
+    return parsedSignedData;
   },
   signChallenge: async ({
     keyHandles,
@@ -86,11 +113,20 @@ const Fido2 = {
       await Fido2.setAppId({ url: appId });
     }
     const signedData = await RNFido2.signFido2(
-      keyHandles,
-      challenge,
+      keyHandles.map(keyHandle => toNormalBase64(keyHandle)),
+      toNormalBase64(challenge),
       parsedOptions
     );
-    return signedData;
+
+    const parsedSignedData = {
+      id: toWebsafeBase64(signedData.id),
+      rawId: toWebsafeBase64(signedData.rawId),
+      signature: toWebsafeBase64(signedData.signature),
+      attestationObject: toWebsafeBase64(signedData.attestationObject),
+      clientDataJSON: toWebsafeBase64(signedData.clientDataJSON),
+      userHandle: signedData.userHandle ? signedData.userHandle : undefined
+    };
+    return parsedSignedData;
   }
 };
 
