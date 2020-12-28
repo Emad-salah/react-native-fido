@@ -60,6 +60,7 @@ const Fido2 = {
     options = {
       timeout: 60,
       requireResidentKey: true,
+      authenticatorType: "any",
       attestationPreference: "direct",
       userVerification: "discouraged"
     }
@@ -69,6 +70,7 @@ const Fido2 = {
       requireResidentKey: true,
       attestationPreference: "direct",
       userVerification: "discouraged",
+      authenticatorType: "any",
       ...(options || {})
     };
     if (appId) {
@@ -124,7 +126,9 @@ const Fido2 = {
       signature: toWebsafeBase64(signedData.signature),
       attestationObject: toWebsafeBase64(signedData.attestationObject),
       clientDataJSON: toWebsafeBase64(signedData.clientDataJSON),
-      userHandle: signedData.userHandle ? signedData.userHandle : undefined
+      userHandle: signedData.userHandle
+        ? toWebsafeBase64(signedData.userHandle)
+        : undefined
     };
     return parsedSignedData;
   }

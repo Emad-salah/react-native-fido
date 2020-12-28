@@ -229,7 +229,19 @@ public class RNFido2Module extends ReactContextBaseJavaModule {
             attestationPreference = "none";
         }
 
-        PublicKeyCredentialCreationOptions options = new PublicKeyCredentialCreationOptions.Builder()
+        String authenticatorType = requestOptions.getString("authenticatorType");
+        Attachment attachmentType = null;
+        AuthenticatorSelectionCriteria.Builder authenticatorSelectionBuilder = new AuthenticatorSelectionCriteria.Builder();
+
+        if (authenticatorType.toLowerCase().equals("crossplatform")) {
+            attachmentType = Attachment.CROSS_PLATFORM;
+        }
+
+        if (authenticatorType.toLowerCase().equals("platform")) {
+            attachmentType = Attachment.PLATFORM;
+        }
+
+        PublicKeyCredentialCreationOptions.Builder optionsBuilder = new PublicKeyCredentialCreationOptions.Builder()
             .setRp(rpEntity)
             .setUser(currentUser)
             .setAttestationConveyancePreference(
@@ -237,8 +249,16 @@ public class RNFido2Module extends ReactContextBaseJavaModule {
             )
             .setChallenge(Base64.decode(challenge, Base64.DEFAULT))
             .setParameters(parameters)
-            .setTimeoutSeconds(timeout)
-            .build();
+            .setTimeoutSeconds(timeout);
+
+        if (attachmentType != null) {
+            authenticatorSelectionBuilder.setAttachment(attachmentType);
+
+            AuthenticatorSelectionCriteria authenticatorSelection = authenticatorSelectionBuilder.build();
+            optionsBuilder.setAuthenticatorSelection(authenticatorSelection);
+        }
+
+        PublicKeyCredentialCreationOptions options = optionsBuilder.build();
 
         Fido2ApiClient fido2ApiClient = Fido.getFido2ApiClient(this.reactContext);
         Task<PendingIntent> fido2PendingIntentTask = fido2ApiClient.getRegisterPendingIntent(options);
