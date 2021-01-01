@@ -122,7 +122,7 @@ public class RNFido2Module extends ReactContextBaseJavaModule {
                                 AuthenticatorErrorResponse.deserializeFromBytes(
                                     intent.getByteArrayExtra(Fido.FIDO2_KEY_ERROR_EXTRA));
                             Log.e(TAG, "FIDO2_KEY_ERROR_EXTRA Security Key: " + authenticatorErrorResponse.getErrorMessage());
-                            mSignPromise.reject(E_AUTHENTICATOR_ERROR, authenticatorErrorResponse.getErrorMessage());
+                            mRegisterPromise.reject(E_AUTHENTICATOR_ERROR, authenticatorErrorResponse.getErrorMessage());
                         }
                         
                         if (intent.hasExtra(Fido.FIDO2_KEY_RESPONSE_EXTRA)) {
@@ -244,6 +244,7 @@ public class RNFido2Module extends ReactContextBaseJavaModule {
         PublicKeyCredentialCreationOptions.Builder optionsBuilder = new PublicKeyCredentialCreationOptions.Builder()
             .setRp(rpEntity)
             .setUser(currentUser)
+            .setExcludeList(existingKeys)
             .setAttestationConveyancePreference(
                     attestationPreference.toLowerCase().equals("none") ? AttestationConveyancePreference.NONE : attestationPreference.toLowerCase().equals("direct") ? AttestationConveyancePreference.DIRECT : AttestationConveyancePreference.INDIRECT
             )
@@ -301,12 +302,12 @@ public class RNFido2Module extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void signFido2(ReadableArray keyHandles, String challenge, ReadableMap requestOptions, Promise promise) {
-        if (appId.isEmpty()) {
+        if (appId != null && appId.isEmpty()) {
             promise.reject("appId", "Please specify an App ID");
             return;
         }
 
-        if (rpId.isEmpty()) {
+        if (rpId == null || rpId.isEmpty()) {
             promise.reject("rpId", "Please specify an RP ID");
             return;
         }
