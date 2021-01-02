@@ -223,7 +223,7 @@ class RNFido2: NSObject {
         options.addPubKeyCredParam(alg: .es256)
         options.authenticatorSelection = AuthenticatorSelectionCriteria(
             requireResidentKey: requireResidentKey, // this flag is ignored by InternalAuthenticator
-            userVerification: getEnumValue(value: userVerification) as! UserVerificationRequirement // (choose from .required, .preferred, .discouraged)
+            userVerification: UserVerificationRequirement.preferred // (choose from .required, .preferred, .discouraged)
         )
         
         firstly {

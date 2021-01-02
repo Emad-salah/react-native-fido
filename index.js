@@ -23,15 +23,18 @@ const toNormalBase64 = (text = "") => {
   return encoded;
 };
 
+let appOrigin = null;
+
+let initialized = false;
+
 const Fido2 = {
   init: async origin => {
     if (!origin) {
       throw new Error("Please specify an origin URL");
     }
 
-    if (Platform.OS === "ios") {
-      await RNFido2.initialize(origin);
-      return "Initialized";
+    if (!appOrigin) {
+      appOrigin = origin;
     }
 
     return "Initialized";
@@ -65,6 +68,9 @@ const Fido2 = {
       userVerification: "discouraged"
     }
   }) => {
+    if (!initialized && Platform.OS === "ios") {
+      await RNFido2.initialize(appOrigin);
+    }
     const parsedOptions = {
       timeout: 60,
       requireResidentKey: true,
@@ -107,6 +113,9 @@ const Fido2 = {
     appId = "",
     options = { timeout: 60 }
   }) => {
+    if (!initialized && Platform.OS === "ios") {
+      await RNFido2.initialize(appOrigin);
+    }
     const parsedOptions = {
       timeout: 60,
       ...(options || {})
