@@ -20,7 +20,7 @@ Pod::Spec.new do |s|
   s.requires_arc = true
 
   s.dependency "React"
-  s.dependency "WebAuthnKit", '~> 0.9.3'
+  s.dependency "WebAuthnKit", :git => "https://github.com/Emad-salah/WebAuthnKit-iOS.git", :commit => "73acd80b29c7e7a7c9be344b0c9e8f9cde339c59"
   # ...
   # s.dependency "..."
 end

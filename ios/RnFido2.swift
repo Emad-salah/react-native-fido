@@ -18,17 +18,32 @@ struct Log: TextOutputStream {
     }
 }
 
+extension UIViewController {
+    var top: UIViewController? {
+        if let controller = self as? UINavigationController {
+            return controller.topViewController?.top
+        }
+        if let controller = self as? UISplitViewController {
+            return controller.viewControllers.last?.top
+        }
+        if let controller = self as? UITabBarController {
+            return controller.selectedViewController?.top
+        }
+        if let controller = presentedViewController {
+            return controller.top
+        }
+        return self
+    }
+}
+
 var logger = Log()
 
 @objc(RNFido2)
 class RNFido2: NSObject {
-    var nfcSessionStatus = false
-    var accessorySessionStatus = false
     var webAuthnClient: WebAuthnClient?
+    private var webauthnOrigin: String?
     private var rpId: NSDictionary?
     private var user: NSDictionary?
-    private var nfcSessionStateObservation: NSKeyValueObservation?
-    private var accessorySessionStateObservation: NSKeyValueObservation?
 
     @objc
     func initialize(
@@ -36,27 +51,13 @@ class RNFido2: NSObject {
       resolver resolve: @escaping RCTPromiseResolveBlock,
       rejecter reject: @escaping RCTPromiseRejectBlock
     ) {
-      let presentedViewController = RCTPresentedViewController();
-
-      guard let currentViewController = presentedViewController else {
-        print("[Fido2 Swift] Error: Unable to retrieve the current view controller", to: &logger)
-        reject("WebAuthnInitializeError", "Unable to retrieve the current view controller", nil)
-        return
-      }
-
       guard let origin = hostOrigin else {
         print("[Fido2 Swift] Error: Please specify an origin URL", to: &logger)
         reject("WebAuthnInitializeError", "Invalid origin URL specified", nil)
         return
       }
 
-      let userConsentUI = UserConsentUI(viewController: currentViewController)
-      let authenticator = InternalAuthenticator(ui: userConsentUI)
-
-      self.webAuthnClient = WebAuthnClient(
-        origin: origin,
-        authenticator: authenticator
-      )
+      webauthnOrigin = origin
 
       print("[Fido2 Swift] Initialized view controller successfully!", to: &logger)
 
@@ -175,12 +176,6 @@ class RNFido2: NSObject {
           return
         }
 
-        guard let webAuthn = self.webAuthnClient else {
-          print("[Fido2 Swift] Error: Please initialize the lib before performing any operation", to: &logger)
-          reject("RegisterError", "Please initialize the lib before performing any operation", nil)
-          return
-        }
-
         guard let requestUser = user else {
           print("[Fido2 Swift] Error: Please use .setUser before calling the register function", to: &logger)
           reject("RegisterError", "Please use .setUser before calling the register function", nil)
@@ -224,6 +219,25 @@ class RNFido2: NSObject {
         options.authenticatorSelection = AuthenticatorSelectionCriteria(
             requireResidentKey: requireResidentKey, // this flag is ignored by InternalAuthenticator
             userVerification: UserVerificationRequirement.preferred // (choose from .required, .preferred, .discouraged)
+        )
+
+//        guard let currentViewController = presentedViewController else {
+//          print("[Fido2 Swift] Error: Unable to retrieve the current view controller", to: &logger)
+//          reject("WebAuthnInitializeError", "Unable to retrieve the current view controller", nil)
+//          return
+//        }
+
+        let authenticator = InternalAuthenticator()
+        
+        guard let webOrigin = webauthnOrigin else {
+            print("[Fido2 Swift] Error: Unable to retrieve origin, please call .initialize before using the API", to: &logger)
+            reject("WebAuthnInitializeError", "Unable to retrieve origin, please call .initialize before using the API", nil)
+            return
+        }
+
+        let webAuthn = WebAuthnClient(
+          origin: webOrigin,
+          authenticator: authenticator
         )
         
         firstly {
