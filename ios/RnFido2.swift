@@ -229,7 +229,7 @@ class RNFido2: NSObject {
         )
         DispatchQueue.main.async {
           firstly {
-              webAuthn.create(options)
+            webAuthn.create(options)
           }.done { (credential: WebAuthnClient.CreateResponse) in
             // send parameters to your server
 
