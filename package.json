@@ -9,8 +9,8 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Emad-salah/react-native-fido2.git",
-    "baseUrl": "https://github.com/Emad-salah/react-native-fido2"
+    "url": "git+https://github.com/Emad-salah/react-native-fido.git",
+    "baseUrl": "https://github.com/Emad-salah/react-native-fido"
   },
   "keywords": [
     "react-native",
