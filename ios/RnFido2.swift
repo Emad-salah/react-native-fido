@@ -1,5 +1,5 @@
 import Foundation
-import WebAuthnKit
+import RNWebAuthnKit
 import UIKit
 import PromiseKit
 
