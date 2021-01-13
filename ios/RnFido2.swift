@@ -1,5 +1,5 @@
 import Foundation
-import RNWebAuthnKit
+import WebAuthnKit
 import UIKit
 import PromiseKit
 
@@ -16,6 +16,18 @@ struct Log: TextOutputStream {
             try? string.data(using: .utf8)?.write(to: log)
         }
     }
+}
+
+extension String {
+  func UTF8toBase64() -> String {
+    let data = self.data(using:String.Encoding.utf8)
+    return data?.base64EncodedString(options: []) ?? ""
+  }
+
+  func Base64toUTF8() -> String {
+    let data = NSData.init(base64Encoded: self, options: []) ?? NSData()
+    return String(data: data as Data, encoding: String.Encoding.utf8) ?? ""
+  }
 }
 
 var logger = Log()
@@ -36,31 +48,33 @@ class RNFido2: NSObject {
       resolver resolve: @escaping RCTPromiseResolveBlock,
       rejecter reject: @escaping RCTPromiseRejectBlock
     ) {
-      let presentedViewController = RCTPresentedViewController();
+      DispatchQueue.main.async {
+        let presentedViewController = RCTPresentedViewController();
 
-      guard let currentViewController = presentedViewController else {
-        print("[Fido2 Swift] Error: Unable to retrieve the current view controller", to: &logger)
-        reject("WebAuthnInitializeError", "Unable to retrieve the current view controller", nil)
-        return
+        guard let currentViewController = presentedViewController else {
+          print("[Fido2 Swift] Error: Unable to retrieve the current view controller", to: &logger)
+          reject("WebAuthnInitializeError", "Unable to retrieve the current view controller", nil)
+          return
+        }
+
+        guard let origin = hostOrigin else {
+          print("[Fido2 Swift] Error: Please specify an origin URL", to: &logger)
+          reject("WebAuthnInitializeError", "Invalid origin URL specified", nil)
+          return
+        }
+
+        let userConsentUI = UserConsentUI(viewController: currentViewController)
+        let authenticator = InternalAuthenticator(ui: userConsentUI)
+
+        self.webAuthnClient = WebAuthnClient(
+          origin: origin,
+          authenticator: authenticator
+        )
+
+        print("[Fido2 Swift] Initialized view controller successfully!", to: &logger)
+
+        resolve(true)
       }
-
-      guard let origin = hostOrigin else {
-        print("[Fido2 Swift] Error: Please specify an origin URL", to: &logger)
-        reject("WebAuthnInitializeError", "Invalid origin URL specified", nil)
-        return
-      }
-
-      let userConsentUI = UserConsentUI(viewController: currentViewController)
-      let authenticator = InternalAuthenticator(ui: userConsentUI)
-
-      self.webAuthnClient = WebAuthnClient(
-        origin: origin,
-        authenticator: authenticator
-      )
-
-      print("[Fido2 Swift] Initialized view controller successfully!", to: &logger)
-
-      resolve(true)
     }
 
     @objc
@@ -225,31 +239,32 @@ class RNFido2: NSObject {
             requireResidentKey: requireResidentKey, // this flag is ignored by InternalAuthenticator
             userVerification: UserVerificationRequirement.preferred // (choose from .required, .preferred, .discouraged)
         )
-        
-        firstly {
-            webAuthn.create(options)
-        }.done { (credential: WebAuthnClient.CreateResponse) in
-          // send parameters to your server
+        DispatchQueue.main.async {
+          firstly {
+              webAuthn.create(options)
+          }.done { (credential: WebAuthnClient.CreateResponse) in
+            // send parameters to your server
 
-          // credential.id
-          // credential.rawId
-          // credential.response.attestationObject
-          // credential.response.clientDataJSON
+            // credential.id
+            // credential.rawId
+            // credential.response.attestationObject
+            // credential.response.clientDataJSON
 
-          let response: NSDictionary = [
-            "id": credential.id,
-            "rawId": credential.rawId,
-            "attestationObject": credential.response.attestationObject,
-            "clientDataJSON": credential.response.clientDataJSON
-          ]
+            let response: NSDictionary = [
+              "id": credential.id,
+              "rawId": credential.rawId.toBase64() ?? "",
+              "attestationObject": credential.response.attestationObject.toBase64() ?? "",
+              "clientDataJSON": credential.response.clientDataJSON.UTF8toBase64()
+            ]
 
-          resolve(response)
-        }.catch { error in
-            // error handling
-            let errorType: String? = "WebAuthnCreateError"
-            let errorCast: Error? = error
-            print("[Fido2 Swift] WebAuthN.create Error: \(error.localizedDescription)", to: &logger)
-            reject(errorType, "Failed to create a new WebAuthn credential", errorCast)
+            resolve(response)
+          }.catch { error in
+              // error handling
+              let errorType: String? = "WebAuthnCreateError"
+              let errorCast: Error? = error
+              print("[Fido2 Swift] WebAuthN.create Error: \(error.localizedDescription)", to: &logger)
+              reject(errorType, "Failed to create a new WebAuthn credential", errorCast)
+          }
         }
     }
 }

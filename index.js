@@ -68,44 +68,49 @@ const Fido2 = {
       userVerification: "discouraged"
     }
   }) => {
-    if (!initialized && Platform.OS === "ios") {
-      await RNFido2.initialize(appOrigin);
+    try {
+      if (!initialized && Platform.OS === "ios") {
+        await RNFido2.initialize(appOrigin);
+      }
+      const parsedOptions = {
+        timeout: 60,
+        requireResidentKey: true,
+        attestationPreference: "direct",
+        userVerification: "discouraged",
+        authenticatorType: "any",
+        ...(options || {})
+      };
+      if (appId) {
+        await Fido2.setAppId({ url: appId });
+      }
+      const signedData = await Platform.select({
+        ios: () =>
+          RNFido2.registerFido2(
+            toNormalBase64(challenge),
+            parsedOptions.attestationPreference,
+            parsedOptions.timeout,
+            parsedOptions.requireResidentKey,
+            parsedOptions.userVerification
+          ),
+        android: () =>
+          RNFido2.registerFido2(
+            keyHandles.map(keyHandle => toNormalBase64(keyHandle)),
+            toNormalBase64(challenge),
+            publicKeyAlgorithms,
+            parsedOptions
+          )
+      })();
+      console.log("SIGNED DATA!!!!", signedData);
+      const parsedSignedData = {
+        id: toWebsafeBase64(signedData.id),
+        rawId: toWebsafeBase64(signedData.rawId),
+        clientDataJSON: toWebsafeBase64(signedData.clientDataJSON),
+        attestationObject: toWebsafeBase64(signedData.attestationObject)
+      };
+      return parsedSignedData;
+    } catch (err) {
+      console.error(err);
     }
-    const parsedOptions = {
-      timeout: 60,
-      requireResidentKey: true,
-      attestationPreference: "direct",
-      userVerification: "discouraged",
-      authenticatorType: "any",
-      ...(options || {})
-    };
-    if (appId) {
-      await Fido2.setAppId({ url: appId });
-    }
-    const signedData = await Platform.select({
-      ios: () =>
-        RNFido2.registerFido2(
-          toNormalBase64(challenge),
-          parsedOptions.attestationPreference,
-          parsedOptions.timeout,
-          parsedOptions.requireResidentKey,
-          parsedOptions.userVerification
-        ),
-      android: () =>
-        RNFido2.registerFido2(
-          keyHandles.map(keyHandle => toNormalBase64(keyHandle)),
-          toNormalBase64(challenge),
-          publicKeyAlgorithms,
-          parsedOptions
-        )
-    })();
-    const parsedSignedData = {
-      id: toWebsafeBase64(signedData.id),
-      rawId: toWebsafeBase64(signedData.rawId),
-      clientDataJSON: toWebsafeBase64(signedData.clientDataJSON),
-      attestationObject: toWebsafeBase64(signedData.attestationObject)
-    };
-    return parsedSignedData;
   },
   signChallenge: async ({
     keyHandles,
