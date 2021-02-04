@@ -134,10 +134,11 @@ public class RNFido2Module extends ReactContextBaseJavaModule {
                                             intent.getByteArrayExtra(Fido.FIDO2_KEY_ERROR_EXTRA));
                             Log.e(TAG, "FIDO2_KEY_ERROR_EXTRA Security Key: " + authenticatorErrorResponse.getErrorMessage());
                             mRegisterPromise.reject(E_AUTHENTICATOR_ERROR, authenticatorErrorResponse.getErrorMessage());
+                            return;
                         }
 
                         if (intent.hasExtra(Fido.FIDO2_KEY_CREDENTIAL_EXTRA)) {
-                            Log.i(TAG, "Received response from Security Key: " + Base64.encode(intent.getByteArrayExtra(Fido.FIDO2_KEY_CREDENTIAL_EXTRA), Base64.DEFAULT));
+                            Log.e(TAG, "Received response from Security Key: " + Base64.encode(intent.getByteArrayExtra(Fido.FIDO2_KEY_CREDENTIAL_EXTRA), Base64.DEFAULT));
                             PublicKeyCredential publicKeyCredential =
                                     PublicKeyCredential.deserializeFromBytes(
                                             intent.getByteArrayExtra(Fido.FIDO2_KEY_CREDENTIAL_EXTRA));
@@ -146,9 +147,10 @@ public class RNFido2Module extends ReactContextBaseJavaModule {
                             WritableMap response = Arguments.createMap();
                             response.putString("clientDataJSON", Base64.encodeToString(signedData.getClientDataJSON(), Base64.URL_SAFE));
                             response.putString("attestationObject", Base64.encodeToString(signedData.getAttestationObject(), Base64.URL_SAFE));
-                            response.putString("id", Base64.encodeToString(publicKeyCredential.getRawId(), Base64.URL_SAFE));
-                            response.putString("rawId", Base64.encodeToString(publicKeyCredential.getRawId(), Base64.URL_SAFE));
+                            response.putString("id", Base64.encodeToString(signedData.getKeyHandle(), Base64.URL_SAFE));
+                            response.putString("rawId", Base64.encodeToString(signedData.getKeyHandle(), Base64.URL_SAFE));
                             mRegisterPromise.resolve(response);
+                            return;
                         }
                     }
                 } else {
@@ -349,7 +351,7 @@ public class RNFido2Module extends ReactContextBaseJavaModule {
             .setChallenge(Base64.decode(challenge, Base64.DEFAULT))
             .setTimeoutSeconds(timeout);
 
-        if ((appId != null || !appId.isEmpty()) && requestOptions.getBoolean("appId")) {
+        if ((appId != null && !appId.isEmpty()) && requestOptions.getBoolean("appId")) {
             optionsBuilder.setAuthenticationExtensions(
                 new AuthenticationExtensions.Builder()
                     .setFido2Extension(new FidoAppIdExtension(appId))
@@ -357,7 +359,7 @@ public class RNFido2Module extends ReactContextBaseJavaModule {
             );
         }
 
-        PublicKeyCredentialRequestOptions options = options.build();
+        PublicKeyCredentialRequestOptions options = optionsBuilder.build();
 
         Fido2ApiClient fido2ApiClient = Fido.getFido2ApiClient(this.reactContext);
         final Task<PendingIntent> fido2PendingIntentTask = fido2ApiClient.getSignPendingIntent(options);
