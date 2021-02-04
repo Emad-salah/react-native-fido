@@ -127,8 +127,12 @@ const Fido2 = {
       if (!initialized && Platform.OS === "ios") {
         await RNFido2.initialize(appOrigin);
       }
-      if (appId) {
+      if (appId && parsedOptions.appId) {
         await Fido2.setAppId({ url: appId });
+      }
+
+      if (!parsedOptions.appId) {
+        await Fido2.setAppId({ url: null });
       }
       const signedData = await RNFido2.signFido2(
         keyHandles.map(keyHandle => toNormalBase64(keyHandle)),
