@@ -100,7 +100,6 @@ const Fido2 = {
             parsedOptions
           )
       })();
-      console.log("SIGNED DATA!!!!", signedData);
       const parsedSignedData = {
         id: toWebsafeBase64(signedData.id),
         rawId: toWebsafeBase64(signedData.rawId),
@@ -110,41 +109,73 @@ const Fido2 = {
       return parsedSignedData;
     } catch (err) {
       console.error(err);
+      throw err;
     }
   },
   signChallenge: async ({
     keyHandles,
     challenge,
     appId = "",
-    options = { timeout: 60 }
+    options = { timeout: 60, appId: true }
   }) => {
-    if (!initialized && Platform.OS === "ios") {
-      await RNFido2.initialize(appOrigin);
-    }
     const parsedOptions = {
       timeout: 60,
+      appId: false,
       ...(options || {})
     };
-    if (appId) {
-      await Fido2.setAppId({ url: appId });
-    }
-    const signedData = await RNFido2.signFido2(
-      keyHandles.map(keyHandle => toNormalBase64(keyHandle)),
-      toNormalBase64(challenge),
-      parsedOptions
-    );
+    try {
+      if (!initialized && Platform.OS === "ios") {
+        await RNFido2.initialize(appOrigin);
+      }
+      if (appId) {
+        await Fido2.setAppId({ url: appId });
+      }
+      const signedData = await RNFido2.signFido2(
+        keyHandles.map(keyHandle => toNormalBase64(keyHandle)),
+        toNormalBase64(challenge),
+        parsedOptions
+      );
 
-    const parsedSignedData = {
-      id: toWebsafeBase64(signedData.id),
-      rawId: toWebsafeBase64(signedData.rawId),
-      signature: toWebsafeBase64(signedData.signature),
-      attestationObject: toWebsafeBase64(signedData.attestationObject),
-      clientDataJSON: toWebsafeBase64(signedData.clientDataJSON),
-      userHandle: signedData.userHandle
-        ? toWebsafeBase64(signedData.userHandle)
-        : undefined
-    };
-    return parsedSignedData;
+      const parsedSignedData = {
+        id: toWebsafeBase64(signedData.id),
+        rawId: toWebsafeBase64(signedData.rawId),
+        signature: toWebsafeBase64(signedData.signature),
+        attestationObject: toWebsafeBase64(signedData.attestationObject),
+        clientDataJSON: toWebsafeBase64(signedData.clientDataJSON),
+        userHandle: signedData.userHandle
+          ? toWebsafeBase64(signedData.userHandle)
+          : undefined,
+        extensions: {
+          appid: parsedOptions.appId
+        }
+      };
+      console.log("parsedSignedData:", parsedSignedData);
+      return parsedSignedData;
+    } catch (err) {
+      const sanitizedErrorMessage = err?.message?.toLowerCase() ?? "";
+      if (
+        (sanitizedErrorMessage.includes("0x6a80") ||
+          sanitizedErrorMessage.includes("SW_WRONG_DATA")) &&
+        !parsedOptions.appId
+      ) {
+        console.warn(
+          "SW_WRONG_DATA (0x6a80): Retrying assertion request with AppID extension..."
+        );
+        const signedData = await Fido2.signChallenge({
+          keyHandles,
+          challenge,
+          appId,
+          options: { ...parsedOptions, appId: true }
+        });
+        console.log(
+          "Assertion request signed with AppID extension successfully!"
+        );
+
+        return signedData;
+      }
+
+      throw err;
+    }
   }
 };
 
