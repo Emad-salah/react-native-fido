@@ -44,12 +44,16 @@ const Fido2 = {
     return rpEntity;
   },
   setAppId: async ({ url }) => {
+    if (Platform.OS === "ios") {
+      return appId;
+    }
+
     const appId = await RNFido2.setAppId(url);
     return appId;
   },
   setUser: async ({ id, username, displayName, icon }) => {
     const user = await Platform.select({
-      ios: () => RNFido2.setUser(username, username, username, icon),
+      ios: () => RNFido2.setUser(username, username, displayName, icon),
       android: () =>
         RNFido2.setUser(id, username, icon, displayName || username)
     })();
@@ -100,6 +104,7 @@ const Fido2 = {
             parsedOptions
           )
       })();
+      console.log(signedData);
       const parsedSignedData = {
         id: toWebsafeBase64(signedData.id),
         rawId: toWebsafeBase64(signedData.rawId),
@@ -134,17 +139,28 @@ const Fido2 = {
       if (!parsedOptions.appId) {
         await Fido2.setAppId({ url: null });
       }
-      const signedData = await RNFido2.signFido2(
-        keyHandles.map(keyHandle => toNormalBase64(keyHandle)),
-        toNormalBase64(challenge),
-        parsedOptions
-      );
+
+      const signedData = await Platform.select({
+        android: () =>
+          RNFido2.signFido2(
+            keyHandles.map(keyHandle => toNormalBase64(keyHandle)),
+            toNormalBase64(challenge),
+            parsedOptions
+          ),
+        ios: () =>
+          RNFido2.signFido2(
+            toNormalBase64(challenge),
+            keyHandles.map(keyHandle => toNormalBase64(keyHandle)),
+            "discouraged"
+          )
+      })();
 
       const parsedSignedData = {
         id: toWebsafeBase64(signedData.id),
         rawId: toWebsafeBase64(signedData.rawId),
         signature: toWebsafeBase64(signedData.signature),
         attestationObject: toWebsafeBase64(signedData.attestationObject),
+        authenticatorData: toWebsafeBase64(signedData.authenticatorData),
         clientDataJSON: toWebsafeBase64(signedData.clientDataJSON),
         userHandle: signedData.userHandle
           ? toWebsafeBase64(signedData.userHandle)

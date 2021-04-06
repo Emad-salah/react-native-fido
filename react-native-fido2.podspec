@@ -20,7 +20,7 @@ Pod::Spec.new do |s|
   s.requires_arc = true
 
   s.dependency "React"
-  s.dependency "RNWebAuthnKit", '~> 0.9.9'
+  s.dependency "RNWebAuthnKit", '~> 0.9.10'
   # ...
   # s.dependency "..."
 end

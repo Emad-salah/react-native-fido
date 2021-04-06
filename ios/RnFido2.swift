@@ -36,31 +36,38 @@ class RNFido2: NSObject {
       resolver resolve: @escaping RCTPromiseResolveBlock,
       rejecter reject: @escaping RCTPromiseRejectBlock
     ) {
-      let presentedViewController = RCTPresentedViewController();
+      DispatchQueue.main.async {
+        let presentedViewController = RCTPresentedViewController();
 
-      guard let currentViewController = presentedViewController else {
-        print("[Fido2 Swift] Error: Unable to retrieve the current view controller", to: &logger)
-        reject("WebAuthnInitializeError", "Unable to retrieve the current view controller", nil)
-        return
+        guard let currentViewController = presentedViewController else {
+          print("[Fido2 Swift] Error: Unable to retrieve the current view controller", to: &logger)
+          reject("WebAuthnInitializeError", "Unable to retrieve the current view controller", nil)
+          return
+        }
+
+        guard let origin = hostOrigin else {
+          print("[Fido2 Swift] Error: Please specify an origin URL", to: &logger)
+          reject("WebAuthnInitializeError", "Invalid origin URL specified", nil)
+          return
+        }
+
+        let userConsentUI = UserConsentUI(viewController: currentViewController)
+        let authenticator = InternalAuthenticator(ui: userConsentUI)
+
+        self.webAuthnClient = WebAuthnClient(
+          origin: origin,
+          authenticator: authenticator
+        )
+
+        print("[Fido2 Swift] Initialized view controller successfully!", to: &logger)
+
+        resolve(true)
       }
+    }
 
-      guard let origin = hostOrigin else {
-        print("[Fido2 Swift] Error: Please specify an origin URL", to: &logger)
-        reject("WebAuthnInitializeError", "Invalid origin URL specified", nil)
-        return
-      }
-
-      let userConsentUI = UserConsentUI(viewController: currentViewController)
-      let authenticator = InternalAuthenticator(ui: userConsentUI)
-
-      self.webAuthnClient = WebAuthnClient(
-        origin: origin,
-        authenticator: authenticator
-      )
-
-      print("[Fido2 Swift] Initialized view controller successfully!", to: &logger)
-
-      resolve(true)
+    @objc
+    static func requiresMainQueueSetup() -> Bool {
+        return true
     }
 
     @objc
@@ -123,7 +130,7 @@ class RNFido2: NSObject {
       user = [
         "id": identifier,
         "name": name,
-        "displayName": name,
+        "displayName": displayName,
         "icon": icon
       ]
 
@@ -159,6 +166,34 @@ class RNFido2: NSObject {
       return AttestationConveyancePreference.none
     }
     
+    func base64ToByte( _ base64UrlText: String) -> [UInt8] {
+        let base64Text = base64UrlText
+          .replacingOccurrences(of: "-", with: "+")
+          .replacingOccurrences(of: "_", with: "/")
+        
+        let base64Data: Data = Data(base64Encoded: base64Text)!
+
+        let byteBase64 = [UInt8](base64Data)
+        
+        return byteBase64
+    }
+
+    func bufferToBase64(_ bufferData: [UInt8]?) -> String {
+        guard let bufferBytes = bufferData else {
+            return ""
+        }
+      let data = NSData(bytes: bufferBytes, length: bufferBytes.count)
+      let base64String = data.base64EncodedString(options: [])
+
+      return base64String
+    }
+
+    func stringToBase64(_ stringData: String) -> String {
+      let utf8str = stringData.data(using: .utf8)
+      let base64Encoded = utf8str?.base64EncodedString(options: Data.Base64EncodingOptions(rawValue: 0)) ?? ""
+      return base64Encoded
+    }
+    
     @objc
     func registerFido2(
         _ base64URLChallenge: String,
@@ -170,7 +205,7 @@ class RNFido2: NSObject {
         rejecter reject: @escaping RCTPromiseRejectBlock
     ) -> Void {
         if base64URLChallenge.isEmpty {
-          print("[Fido2 Swift] Error: Please specify a challenge", to: &logger)
+          print("[Fido2 Swift] Register Error: Please specify a challenge", to: &logger)
           reject("RegisterError", "Please specify a challenge", nil)
           return
         }
@@ -199,13 +234,7 @@ class RNFido2: NSObject {
           return
         }
 
-        let challengeBase64 = base64URLChallenge
-          .replacingOccurrences(of: "-", with: "+")
-          .replacingOccurrences(of: "_", with: "/")
-        
-        let challengeData: Data = Data(base64Encoded: challengeBase64)!
-
-        let challenge = [UInt8](challengeData)
+        let challenge = self.base64ToByte(base64URLChallenge)
 
 //        let timeout = timeoutNumber?.intValue ?? 60
         var options = PublicKeyCredentialCreationOptions()
@@ -223,34 +252,103 @@ class RNFido2: NSObject {
         options.addPubKeyCredParam(alg: .es256)
         options.authenticatorSelection = AuthenticatorSelectionCriteria(
             requireResidentKey: requireResidentKey, // this flag is ignored by InternalAuthenticator
-            userVerification: UserVerificationRequirement.preferred // (choose from .required, .preferred, .discouraged)
+            userVerification: UserVerificationRequirement.discouraged // (choose from .required, .preferred, .discouraged)
         )
         
-        firstly {
-            webAuthn.create(options)
-        }.done { (credential: WebAuthnClient.CreateResponse) in
-          // send parameters to your server
+        DispatchQueue.main.async {
+          firstly {
+              webAuthn.create(options)
+          }.done { (credential: WebAuthnClient.CreateResponse) in
+            // send parameters to your server
 
-          // credential.id
-          // credential.rawId
-          // credential.response.attestationObject
-          // credential.response.clientDataJSON
+            // credential.id
+            // credential.rawId
+            // credential.response.attestationObject
+            // credential.response.clientDataJSON
 
-          let response: NSDictionary = [
-            "id": credential.id,
-            "rawId": credential.rawId,
-            "attestationObject": credential.response.attestationObject,
-            "clientDataJSON": credential.response.clientDataJSON
-          ]
+            let response: NSDictionary = [
+              "id": credential.id,
+              "rawId": self.bufferToBase64(credential.rawId),
+              "attestationObject": self.bufferToBase64(credential.response.attestationObject),
+              "clientDataJSON": self.stringToBase64(credential.response.clientDataJSON)
+            ]
 
-          resolve(response)
-        }.catch { error in
-            // error handling
-            let errorType: String? = "WebAuthnCreateError"
-            let errorCast: Error? = error
-            print("[Fido2 Swift] WebAuthN.create Error: \(error.localizedDescription)", to: &logger)
-            reject(errorType, "Failed to create a new WebAuthn credential", errorCast)
+            resolve(response)
+          }.catch { error in
+              // error handling
+              let errorType: String? = "WebAuthnCreateError"
+              let errorCast: Error? = error
+              print("[Fido2 Swift] WebAuthN.create Error: \(error.localizedDescription)", to: &logger)
+              reject(errorType, "Failed to create a new WebAuthn credential", errorCast)
+          }
+        }
+    }
+
+    @objc
+    func signFido2(
+        _ base64URLChallenge: String,
+        allowedCredentials: NSMutableArray,
+        userVerification: String = "discouraged",
+        resolver resolve: @escaping RCTPromiseResolveBlock,
+        rejecter reject: @escaping RCTPromiseRejectBlock
+    ) -> Void {
+        if base64URLChallenge.isEmpty {
+          print("[Fido2 Swift] Error: Please specify a challenge", to: &logger)
+          reject("SignError", "Please specify a challenge", nil)
+          return
+        }
+
+        guard let webAuthn = self.webAuthnClient else {
+          print("[Fido2 Swift] Error: Please initialize the lib before performing any operation", to: &logger)
+          reject("SignError", "Please initialize the lib before performing any operation", nil)
+          return
+        }
+
+        guard let requestRpId = rpId else {
+          print("[Fido2 Swift] Error: Please use .setRpId before calling the sign function", to: &logger)
+          reject("SignError", "Please use .setRpId before calling the sign function", nil)
+          return
+        }
+
+        let challenge = base64ToByte(base64URLChallenge)
+
+//        let timeout = timeoutNumber?.intValue ?? 60
+        var options = PublicKeyCredentialRequestOptions()
+
+        options.challenge = challenge // must be Array<UInt8>
+        options.rpId = requestRpId["id"] as? String ?? ""
+
+        options.userVerification = UserVerificationRequirement.discouraged
+        allowedCredentials.map { (credentialId: Any) in
+            if let credentialIdString = credentialId as? String {
+                options.addAllowCredential(
+                    credentialId: base64ToByte(credentialIdString),
+                    transports: [.internal_]
+                )
+            }
+        }
+        
+        DispatchQueue.main.async {
+          firstly {
+              webAuthn.get(options)
+          }.done { (credential: WebAuthnClient.GetResponse) in
+            let response: NSDictionary = [
+              "id": credential.id,
+              "rawId": self.bufferToBase64(credential.rawId),
+              "authenticatorData": self.bufferToBase64(credential.response.authenticatorData),
+              "clientDataJSON": self.stringToBase64(credential.response.clientDataJSON),
+              "signature": self.bufferToBase64(credential.response.signature),
+              "userHandle": self.bufferToBase64(credential.response.userHandle)
+            ]
+
+            resolve(response)
+          }.catch { error in
+              // error handling
+              let errorType: String? = "WebAuthnCreateError"
+              let errorCast: Error? = error
+              print("[Fido2 Swift] WebAuthN.create Error: \(error.localizedDescription)", to: &logger)
+              reject(errorType, "Failed to create a new WebAuthn credential", errorCast)
+          }
         }
     }
 }
- 
