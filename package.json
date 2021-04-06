@@ -1,7 +1,7 @@
 {
   "name": "react-native-fido2",
   "title": "React Native Fido2",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "TODO",
   "main": "index.js",
   "scripts": {
